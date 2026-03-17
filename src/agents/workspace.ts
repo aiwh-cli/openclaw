@@ -532,6 +532,7 @@ export async function loadWorkspaceBootstrapFiles(dir: string): Promise<Workspac
         boundaryDirs: [
           path.join(resolveRequiredHomeDir(process.env, os.homedir), ".openclaw"),
           resolvedDir,
+          ...(process.env.OPENCLAW_STATE_DIR ? [path.dirname(process.env.OPENCLAW_STATE_DIR)] : []),
         ],
       });
       result.push({
@@ -626,6 +627,7 @@ export async function loadExtraBootstrapFilesWithDiagnostics(
         boundaryDirs: [
           path.join(resolveRequiredHomeDir(process.env, os.homedir), ".openclaw"),
           resolvedDir,
+          ...(process.env.OPENCLAW_STATE_DIR ? [path.dirname(process.env.OPENCLAW_STATE_DIR)] : []),
         ],
       });
       files.push({
