@@ -534,7 +534,9 @@ export function attachGatewayWsMessageHandler(params: {
           // Shared token/password auth can bypass pairing for trusted operators, but
           // device-less backend clients must not self-declare scopes. Control UI
           // keeps its explicitly allowed device-less scopes on the allow path.
-          if (!device && (!isControlUi || decision.kind !== "allow")) {
+          // AIWH patch: also preserve scopes for shared-token-authenticated local clients
+          // (dashboard backend connects with token auth but no device identity).
+          if (!device && (!isControlUi || decision.kind !== "allow") && !sharedAuthOk) {
             clearUnboundScopes();
           }
           if (decision.kind === "allow") {
