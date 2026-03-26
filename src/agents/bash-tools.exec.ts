@@ -440,6 +440,14 @@ export function createExecTool(
             })
           : (hostEnvResult?.env ?? inheritedBaseEnv);
 
+      // AIWH Patch: inject agent identity for safe-bash audit logging
+      if (agentId) {
+        env.OPENCLAW_AGENT_ID = agentId;
+      }
+      if (defaults?.sessionKey) {
+        env.OPENCLAW_SESSION_KEY = defaults.sessionKey;
+      }
+
       if (!sandbox && host === "gateway" && !params.env?.PATH) {
         const shellPath = getShellPathFromLoginShell({
           env: process.env,
