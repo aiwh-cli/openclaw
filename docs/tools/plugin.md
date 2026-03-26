@@ -45,6 +45,17 @@ with OpenClaw), others are **external** (published on npm by the community).
   </Step>
 </Steps>
 
+If you prefer chat-native control, enable `commands.plugins: true` and use:
+
+```text
+/plugin install clawhub:@openclaw/voice-call
+/plugin show voice-call
+/plugin enable voice-call
+```
+
+The install path uses the same resolver as the CLI: local path/archive, explicit
+`clawhub:<pkg>`, or bare package spec (ClawHub first, then npm fallback).
+
 ## Plugin types
 
 OpenClaw recognizes two plugin formats:
@@ -246,6 +257,15 @@ Common registration methods:
 | `registerCommand` / `registerCli`    | CLI commands         |
 | `registerContextEngine`              | Context engine       |
 | `registerService`                    | Background service   |
+
+Hook guard behavior for typed lifecycle hooks:
+
+- `before_tool_call`: `{ block: true }` is terminal; lower-priority handlers are skipped.
+- `before_tool_call`: `{ block: false }` is a no-op and does not clear an earlier block.
+- `message_sending`: `{ cancel: true }` is terminal; lower-priority handlers are skipped.
+- `message_sending`: `{ cancel: false }` is a no-op and does not clear an earlier cancel.
+
+For full typed hook behavior, see [SDK Overview](/plugins/sdk-overview#hook-decision-semantics).
 
 ## Related
 
