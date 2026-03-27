@@ -605,7 +605,7 @@ export function buildAgentSystemPrompt(params: {
   if (validContextFiles.length > 0) {
     lines.push("# Project Context", "");
     if (validContextFiles.length > 0) {
-      const soulBasenames = new Set(["soul.md", "soul-core.md", "soul-client.md"]);
+      const soulBasenames = new Set(["soul.md", "core.md"]);
       const hasSoulFile = validContextFiles.some((file) => {
         const normalizedPath = file.path.trim().replace(/\\/g, "/");
         const baseName = (normalizedPath.split("/").pop() ?? normalizedPath).toLowerCase();
