@@ -1,15 +1,13 @@
 import {
+  resolveAgentConfig,
   resolveAgentDir,
   resolveDefaultAgentId,
   resolveSessionAgentId,
 } from "../../agents/agent-scope.js";
 import { resolveFastModeState } from "../../agents/fast-mode.js";
 import { resolveModelAuthLabel } from "../../agents/model-auth-label.js";
-import {
-  countPendingDescendantRuns,
-  getLatestSubagentRunByChildSessionKey,
-  listSubagentRunsForRequester,
-} from "../../agents/subagent-registry.js";
+import { listControlledSubagentRuns } from "../../agents/subagent-control.js";
+import { countPendingDescendantRuns } from "../../agents/subagent-registry.js";
 import {
   resolveInternalSessionKey,
   resolveMainSessionAlias,
@@ -24,6 +22,7 @@ import {
   resolveUsageProviderId,
 } from "../../infra/provider-usage.js";
 import type { MediaUnderstandingDecision } from "../../media-understanding/types.js";
+import { listTasksForAgentId, listTasksForSessionKey } from "../../tasks/task-registry.js";
 import { normalizeGroupActivation } from "../group-activation.js";
 import { resolveSelectedAndActiveModel } from "../model-runtime.js";
 import { buildStatusMessage } from "../status.js";
@@ -31,7 +30,7 @@ import type { ElevatedLevel, ReasoningLevel, ThinkLevel, VerboseLevel } from "..
 import type { ReplyPayload } from "../types.js";
 import type { CommandContext } from "./commands-types.js";
 import { getFollowupQueueDepth, resolveQueueSettings } from "./queue.js";
-import { resolveSubagentLabel, sortSubagentRuns } from "./subagents-utils.js";
+import { resolveSubagentLabel } from "./subagents-utils.js";
 
 // Some usage endpoints only work with CLI/session OAuth tokens, not API keys.
 // Skip those probes when the active auth mode cannot satisfy the endpoint.
@@ -56,6 +55,36 @@ function shouldLoadUsageSummary(params: {
   return Boolean(auth?.startsWith("oauth") || auth?.startsWith("token"));
 }
 
+function formatSessionTaskLine(sessionKey: string): string | undefined {
+  const tasks = listTasksForSessionKey(sessionKey);
+  if (tasks.length === 0) {
+    return undefined;
+  }
+  const latest = tasks[0];
+  const active = tasks.filter(
+    (task) => task.status === "queued" || task.status === "running",
+  ).length;
+  const headline = `${active} active · ${tasks.length} total`;
+  const title = latest.label?.trim() || latest.task.trim();
+  const detail =
+    latest.status === "running" || latest.status === "queued"
+      ? latest.progressSummary?.trim()
+      : latest.error?.trim() || latest.terminalSummary?.trim();
+  const parts = [headline, latest.runtime, title, detail].filter(Boolean);
+  return parts.length ? `📌 Tasks: ${parts.join(" · ")}` : undefined;
+}
+
+function formatAgentTaskCountsLine(agentId: string): string | undefined {
+  const tasks = listTasksForAgentId(agentId);
+  if (tasks.length === 0) {
+    return undefined;
+  }
+  const active = tasks.filter(
+    (task) => task.status === "queued" || task.status === "running",
+  ).length;
+  return `📌 Tasks: ${active} active · ${tasks.length} total · agent-local`;
+}
+
 export async function buildStatusReply(params: {
   cfg: OpenClawConfig;
   command: CommandContext;
@@ -77,14 +106,54 @@ export async function buildStatusReply(params: {
   defaultGroupActivation: () => "always" | "mention";
   mediaDecisions?: MediaUnderstandingDecision[];
 }): Promise<ReplyPayload | undefined> {
+  const { command } = params;
+  if (!command.isAuthorizedSender) {
+    logVerbose(`Ignoring /status from unauthorized sender: ${command.senderId || "<unknown>"}`);
+    return undefined;
+  }
+
+  return {
+    text: await buildStatusText({
+      ...params,
+      statusChannel: command.channel,
+    }),
+  };
+}
+
+export async function buildStatusText(params: {
+  cfg: OpenClawConfig;
+  sessionEntry?: SessionEntry;
+  sessionKey: string;
+  parentSessionKey?: string;
+  sessionScope?: SessionScope;
+  storePath?: string;
+  statusChannel: string;
+  provider: string;
+  model: string;
+  contextTokens?: number;
+  resolvedThinkLevel?: ThinkLevel;
+  resolvedFastMode?: boolean;
+  resolvedVerboseLevel: VerboseLevel;
+  resolvedReasoningLevel: ReasoningLevel;
+  resolvedElevatedLevel?: ElevatedLevel;
+  resolveDefaultThinkingLevel: () => Promise<ThinkLevel | undefined>;
+  isGroup: boolean;
+  defaultGroupActivation: () => "always" | "mention";
+  mediaDecisions?: MediaUnderstandingDecision[];
+  taskLineOverride?: string;
+  skipDefaultTaskLookup?: boolean;
+  primaryModelLabelOverride?: string;
+  modelAuthOverride?: string;
+  activeModelAuthOverride?: string;
+}): Promise<string> {
   const {
     cfg,
-    command,
     sessionEntry,
     sessionKey,
     parentSessionKey,
     sessionScope,
     storePath,
+    statusChannel,
     provider,
     model,
     contextTokens,
@@ -97,10 +166,6 @@ export async function buildStatusReply(params: {
     isGroup,
     defaultGroupActivation,
   } = params;
-  if (!command.isAuthorizedSender) {
-    logVerbose(`Ignoring /status from unauthorized sender: ${command.senderId || "<unknown>"}`);
-    return undefined;
-  }
   const statusAgentId = sessionKey
     ? resolveSessionAgentId({ sessionKey, config: cfg })
     : resolveDefaultAgentId(cfg);
@@ -110,20 +175,24 @@ export async function buildStatusReply(params: {
     selectedModel: model,
     sessionEntry,
   });
-  const selectedModelAuth = resolveModelAuthLabel({
-    provider,
-    cfg,
-    sessionEntry,
-    agentDir: statusAgentDir,
-  });
-  const activeModelAuth = modelRefs.activeDiffers
-    ? resolveModelAuthLabel({
-        provider: modelRefs.active.provider,
+  const selectedModelAuth = Object.hasOwn(params, "modelAuthOverride")
+    ? params.modelAuthOverride
+    : resolveModelAuthLabel({
+        provider,
         cfg,
         sessionEntry,
         agentDir: statusAgentDir,
-      })
-    : selectedModelAuth;
+      });
+  const activeModelAuth = Object.hasOwn(params, "activeModelAuthOverride")
+    ? params.activeModelAuthOverride
+    : modelRefs.activeDiffers
+      ? resolveModelAuthLabel({
+          provider: modelRefs.active.provider,
+          cfg,
+          sessionEntry,
+          agentDir: statusAgentDir,
+        })
+      : selectedModelAuth;
   const currentUsageProvider = (() => {
     try {
       return resolveUsageProviderId(provider);
@@ -176,7 +245,7 @@ export async function buildStatusReply(params: {
   }
   const queueSettings = resolveQueueSettings({
     cfg,
-    channel: command.channel,
+    channel: statusChannel,
     sessionEntry,
   });
   const queueKey = sessionKey ?? sessionEntry?.sessionId;
@@ -186,22 +255,17 @@ export async function buildStatusReply(params: {
   );
 
   let subagentsLine: string | undefined;
+  let taskLine: string | undefined;
   if (sessionKey) {
     const { mainKey, alias } = resolveMainSessionAlias(cfg);
     const requesterKey = resolveInternalSessionKey({ key: sessionKey, alias, mainKey });
-    const seenChildSessionKeys = new Set<string>();
-    const runs = sortSubagentRuns(listSubagentRunsForRequester(requesterKey)).filter((entry) => {
-      if (seenChildSessionKeys.has(entry.childSessionKey)) {
-        return false;
-      }
-      const latest = getLatestSubagentRunByChildSessionKey(entry.childSessionKey);
-      const latestRequesterSessionKey = latest?.requesterSessionKey?.trim();
-      if (!latest || latest.runId !== entry.runId || latestRequesterSessionKey !== requesterKey) {
-        return false;
-      }
-      seenChildSessionKeys.add(entry.childSessionKey);
-      return true;
-    });
+    taskLine = params.skipDefaultTaskLookup
+      ? params.taskLineOverride
+      : (params.taskLineOverride ?? formatSessionTaskLine(requesterKey));
+    if (!taskLine && !params.skipDefaultTaskLookup) {
+      taskLine = formatAgentTaskCountsLine(statusAgentId);
+    }
+    const runs = listControlledSubagentRuns(requesterKey);
     const verboseEnabled = resolvedVerboseLevel && resolvedVerboseLevel !== "off";
     if (runs.length > 0) {
       const active = runs.filter(
@@ -224,6 +288,7 @@ export async function buildStatusReply(params: {
     ? (normalizeGroupActivation(sessionEntry?.groupActivation) ?? defaultGroupActivation())
     : undefined;
   const agentDefaults = cfg.agents?.defaults ?? {};
+  const agentConfig = resolveAgentConfig(cfg, statusAgentId);
   const effectiveFastMode =
     resolvedFastMode ??
     resolveFastModeState({
@@ -239,10 +304,10 @@ export async function buildStatusReply(params: {
       ...agentDefaults,
       model: {
         ...toAgentModelListLike(agentDefaults.model),
-        primary: `${provider}/${model}`,
+        primary: params.primaryModelLabelOverride ?? `${provider}/${model}`,
       },
-      contextTokens,
-      thinkingDefault: agentDefaults.thinkingDefault,
+      ...(typeof contextTokens === "number" && contextTokens > 0 ? { contextTokens } : {}),
+      thinkingDefault: agentConfig?.thinkingDefault ?? agentDefaults.thinkingDefault,
       verboseDefault: agentDefaults.verboseDefault,
       elevatedDefault: agentDefaults.elevatedDefault,
     },
@@ -274,9 +339,10 @@ export async function buildStatusReply(params: {
       showDetails: queueOverrides,
     },
     subagentsLine,
+    taskLine,
     mediaDecisions: params.mediaDecisions,
     includeTranscriptUsage: false,
   });
 
-  return { text: statusText };
+  return statusText;
 }

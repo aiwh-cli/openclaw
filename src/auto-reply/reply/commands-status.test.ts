@@ -4,16 +4,51 @@ import {
   resetSubagentRegistryForTests,
 } from "../../agents/subagent-registry.js";
 import type { OpenClawConfig } from "../../config/config.js";
+import { createQueuedTaskRun, createRunningTaskRun } from "../../tasks/task-executor.js";
+import { resetTaskRegistryForTests } from "../../tasks/task-registry.js";
 import { buildStatusReply } from "./commands-status.js";
 import { buildCommandTestParams } from "./commands.test-harness.js";
+
+const baseCfg = {
+  commands: { text: true },
+  channels: { whatsapp: { allowFrom: ["*"] } },
+  session: { mainKey: "main", scope: "per-sender" },
+} as OpenClawConfig;
+
+async function buildStatusReplyForTest(params: { sessionKey?: string; verbose?: boolean }) {
+  const commandParams = buildCommandTestParams("/status", baseCfg);
+  const sessionKey = params.sessionKey ?? commandParams.sessionKey;
+  return await buildStatusReply({
+    cfg: baseCfg,
+    command: commandParams.command,
+    sessionEntry: commandParams.sessionEntry,
+    sessionKey,
+    parentSessionKey: sessionKey,
+    sessionScope: commandParams.sessionScope,
+    storePath: commandParams.storePath,
+    provider: "anthropic",
+    model: "claude-opus-4-5",
+    contextTokens: 0,
+    resolvedThinkLevel: commandParams.resolvedThinkLevel,
+    resolvedFastMode: false,
+    resolvedVerboseLevel: params.verbose ? "on" : commandParams.resolvedVerboseLevel,
+    resolvedReasoningLevel: commandParams.resolvedReasoningLevel,
+    resolvedElevatedLevel: commandParams.resolvedElevatedLevel,
+    resolveDefaultThinkingLevel: commandParams.resolveDefaultThinkingLevel,
+    isGroup: commandParams.isGroup,
+    defaultGroupActivation: commandParams.defaultGroupActivation,
+  });
+}
 
 describe("buildStatusReply subagent summary", () => {
   beforeEach(() => {
     resetSubagentRegistryForTests();
+    resetTaskRegistryForTests();
   });
 
   afterEach(() => {
     resetSubagentRegistryForTests();
+    resetTaskRegistryForTests();
   });
 
   it("counts ended orchestrators with active descendants as active", async () => {
@@ -41,32 +76,7 @@ describe("buildStatusReply subagent summary", () => {
       startedAt: Date.now() - 60_000,
     });
 
-    const cfg = {
-      commands: { text: true },
-      channels: { whatsapp: { allowFrom: ["*"] } },
-      session: { mainKey: "main", scope: "per-sender" },
-    } as OpenClawConfig;
-    const params = buildCommandTestParams("/status", cfg);
-    const reply = await buildStatusReply({
-      cfg,
-      command: params.command,
-      sessionEntry: params.sessionEntry,
-      sessionKey: params.sessionKey,
-      parentSessionKey: params.sessionKey,
-      sessionScope: params.sessionScope,
-      storePath: params.storePath,
-      provider: "anthropic",
-      model: "claude-opus-4-5",
-      contextTokens: 0,
-      resolvedThinkLevel: params.resolvedThinkLevel,
-      resolvedFastMode: false,
-      resolvedVerboseLevel: params.resolvedVerboseLevel,
-      resolvedReasoningLevel: params.resolvedReasoningLevel,
-      resolvedElevatedLevel: params.resolvedElevatedLevel,
-      resolveDefaultThinkingLevel: params.resolveDefaultThinkingLevel,
-      isGroup: params.isGroup,
-      defaultGroupActivation: params.defaultGroupActivation,
-    });
+    const reply = await buildStatusReplyForTest({});
 
     expect(reply?.text).toContain("🤖 Subagents: 1 active");
   });
@@ -96,32 +106,7 @@ describe("buildStatusReply subagent summary", () => {
       outcome: { status: "ok" },
     });
 
-    const cfg = {
-      commands: { text: true },
-      channels: { whatsapp: { allowFrom: ["*"] } },
-      session: { mainKey: "main", scope: "per-sender" },
-    } as OpenClawConfig;
-    const params = buildCommandTestParams("/status", cfg);
-    const reply = await buildStatusReply({
-      cfg,
-      command: params.command,
-      sessionEntry: params.sessionEntry,
-      sessionKey: params.sessionKey,
-      parentSessionKey: params.sessionKey,
-      sessionScope: params.sessionScope,
-      storePath: params.storePath,
-      provider: "anthropic",
-      model: "claude-opus-4-5",
-      contextTokens: 0,
-      resolvedThinkLevel: params.resolvedThinkLevel,
-      resolvedFastMode: false,
-      resolvedVerboseLevel: "on",
-      resolvedReasoningLevel: params.resolvedReasoningLevel,
-      resolvedElevatedLevel: params.resolvedElevatedLevel,
-      resolveDefaultThinkingLevel: params.resolveDefaultThinkingLevel,
-      isGroup: params.isGroup,
-      defaultGroupActivation: params.defaultGroupActivation,
-    });
+    const reply = await buildStatusReplyForTest({ verbose: true });
 
     expect(reply?.text).toContain("🤖 Subagents: 1 active");
     expect(reply?.text).not.toContain("· 1 done");
@@ -174,34 +159,78 @@ describe("buildStatusReply subagent summary", () => {
       startedAt: Date.now() - 30_000,
     });
 
-    const cfg = {
-      commands: { text: true },
-      channels: { whatsapp: { allowFrom: ["*"] } },
-      session: { mainKey: "main", scope: "per-sender" },
-    } as OpenClawConfig;
-    const params = buildCommandTestParams("/status", cfg);
-    const reply = await buildStatusReply({
-      cfg,
-      command: params.command,
-      sessionEntry: params.sessionEntry,
-      sessionKey: oldParentKey,
-      parentSessionKey: oldParentKey,
-      sessionScope: params.sessionScope,
-      storePath: params.storePath,
-      provider: "anthropic",
-      model: "claude-opus-4-5",
-      contextTokens: 0,
-      resolvedThinkLevel: params.resolvedThinkLevel,
-      resolvedFastMode: false,
-      resolvedVerboseLevel: "on",
-      resolvedReasoningLevel: params.resolvedReasoningLevel,
-      resolvedElevatedLevel: params.resolvedElevatedLevel,
-      resolveDefaultThinkingLevel: params.resolveDefaultThinkingLevel,
-      isGroup: params.isGroup,
-      defaultGroupActivation: params.defaultGroupActivation,
-    });
+    const reply = await buildStatusReplyForTest({ sessionKey: oldParentKey, verbose: true });
 
     expect(reply?.text).not.toContain("🤖 Subagents: 1 active");
     expect(reply?.text).not.toContain("stale old parent child");
+  });
+
+  it("counts controller-owned runs even when the latest child requester differs", async () => {
+    addSubagentRunForTests({
+      runId: "run-status-controller-owned",
+      childSessionKey: "agent:main:subagent:status-controller-owned",
+      requesterSessionKey: "agent:main:requester-only",
+      requesterDisplayKey: "requester-only",
+      controllerSessionKey: "agent:main:main",
+      task: "controller-owned status worker",
+      cleanup: "keep",
+      createdAt: Date.now() - 60_000,
+      startedAt: Date.now() - 60_000,
+    });
+
+    const reply = await buildStatusReplyForTest({});
+
+    expect(reply?.text).toContain("🤖 Subagents: 1 active");
+  });
+
+  it("includes active and total task counts for the current session", async () => {
+    createRunningTaskRun({
+      runtime: "subagent",
+      requesterSessionKey: "agent:main:main",
+      childSessionKey: "agent:main:subagent:status-task-running",
+      runId: "run-status-task-running",
+      task: "active background task",
+      progressSummary: "still working",
+    });
+    createQueuedTaskRun({
+      runtime: "cron",
+      requesterSessionKey: "agent:main:main",
+      childSessionKey: "agent:main:subagent:status-task-queued",
+      runId: "run-status-task-queued",
+      task: "queued background task",
+    });
+
+    const reply = await buildStatusReplyForTest({});
+
+    expect(reply?.text).toContain("📌 Tasks: 2 active · 2 total");
+    expect(reply?.text).toMatch(/📌 Tasks: 2 active · 2 total · (subagent|cron) · /);
+  });
+
+  it("falls back to same-agent task counts without details when the current session has none", async () => {
+    createRunningTaskRun({
+      runtime: "subagent",
+      requesterSessionKey: "agent:main:other",
+      childSessionKey: "agent:main:subagent:status-agent-fallback-running",
+      runId: "run-status-agent-fallback-running",
+      agentId: "main",
+      task: "hidden task title",
+      progressSummary: "hidden progress detail",
+    });
+    createQueuedTaskRun({
+      runtime: "cron",
+      requesterSessionKey: "agent:main:another",
+      childSessionKey: "agent:main:subagent:status-agent-fallback-queued",
+      runId: "run-status-agent-fallback-queued",
+      agentId: "main",
+      task: "another hidden task title",
+    });
+
+    const reply = await buildStatusReplyForTest({ sessionKey: "agent:main:empty-session" });
+
+    expect(reply?.text).toContain("📌 Tasks: 2 active · 2 total · agent-local");
+    expect(reply?.text).not.toContain("hidden task title");
+    expect(reply?.text).not.toContain("hidden progress detail");
+    expect(reply?.text).not.toContain("subagent");
+    expect(reply?.text).not.toContain("cron");
   });
 });
