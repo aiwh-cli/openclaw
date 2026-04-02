@@ -59,7 +59,7 @@ export function maybeRestoreCredsFromBackup(authDir: string): void {
     } catch {
       // best-effort on platforms that support it
     }
-    logger.warn({ credsPath }, "restored corrupted WhatsApp creds.json from backup");
+    logger.debug({ credsPath }, "restored WhatsApp creds.json from backup (may be mid-write race)");
   } catch {
     // ignore
   }
