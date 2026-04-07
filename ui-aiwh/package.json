@@ -1,0 +1,23 @@
+{
+  "name": "aiwh-dashboard-ui",
+  "private": true,
+  "type": "module",
+  "version": "1.0.0",
+  "description": "AIWH Dashboard frontend — compiled build for IP protection",
+  "scripts": {
+    "build": "node build.mjs",
+    "build:lit": "vite build"
+  },
+  "dependencies": {
+    "dompurify": "^3.3.3",
+    "lit": "^3.3.2",
+    "marked": "^18.0.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "lightningcss": "^1.32.0",
+    "terser": "^5.46.1",
+    "typescript": "^5.9.3",
+    "vite": "^8.0.0"
+  }
+}

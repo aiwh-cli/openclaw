@@ -1,0 +1,161 @@
+/* ─── OpenClaw CSS Variable Mapping ────────────────────────────
+   Maps OpenClaw's design tokens to our Sovereign Brutalism theme.
+   Loaded INSTEAD of OpenClaw's base.css to avoid overriding our :root.
+   ─────────────────────────────────────────────────────────────── */
+
+:root {
+  /* Background — map to our void/surface */
+  --bg: var(--void, #0A0A0C);
+  --bg-accent: var(--surface-solid, #0D0D10);
+  --bg-content: var(--surface, rgba(14, 14, 18, 0.65));
+  --bg-elevated: rgba(20, 20, 24, 0.80);
+  --bg-hover: rgba(201, 168, 76, 0.06);
+  --bg-muted: rgba(20, 20, 24, 0.60);
+
+  /* Typography — Theme Z additions */
+  --foreground: var(--text-primary, #F5EDD6);
+  --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+
+  /* Card/Surface */
+  --card: var(--surface, rgba(14, 14, 18, 0.65));
+  --card-foreground: var(--text-primary, #F5EDD6);
+  --card-highlight: rgba(201, 168, 76, 0.04);
+  --popover: rgba(20, 20, 24, 0.95);
+  --popover-foreground: var(--text-primary, #F5EDD6);
+
+  /* Panel */
+  --panel: var(--void, #0A0A0C);
+  --panel-strong: rgba(20, 20, 24, 0.80);
+  --panel-hover: rgba(201, 168, 76, 0.06);
+  --chrome: rgba(10, 10, 12, 0.96);
+  --chrome-strong: rgba(10, 10, 12, 0.98);
+
+  /* Text — map to our cream/muted */
+  --text: var(--text-primary, #F5EDD6);
+  --text-strong: var(--text-primary, #F5EDD6);
+  --chat-text: var(--text-primary, #F5EDD6);
+  --muted: var(--text-muted, #8A8578);
+  --muted-strong: var(--text-dim, #4A4740);
+  --muted-foreground: var(--text-muted, #8A8578);
+
+  /* Border — map to our gold-based borders */
+  --border: var(--border-faint, rgba(201, 168, 76, 0.06));
+  --border-strong: var(--border-dim, rgba(201, 168, 76, 0.12));
+  --border-hover: var(--border-hover, rgba(201, 168, 76, 0.30));
+  --border-subtle: var(--border-faint, rgba(201, 168, 76, 0.06));
+  --input: var(--border-faint, rgba(201, 168, 76, 0.06));
+  --ring: var(--magenta, #C9A84C);
+
+  /* Accent — map to our gold */
+  --accent: var(--magenta, #C9A84C);
+  --accent-hover: var(--magenta-hot, #F0C040);
+  --accent-muted: var(--magenta, #C9A84C);
+  --accent-subtle: var(--magenta-dim, rgba(201, 168, 76, 0.10));
+  --accent-foreground: #0A0A0C;
+  --accent-glow: var(--magenta-glow, rgba(201, 168, 76, 0.18));
+  --primary: var(--magenta, #C9A84C);
+  --primary-foreground: #0A0A0C;
+
+  /* Secondary */
+  --secondary: rgba(14, 14, 18, 0.65);
+  --secondary-foreground: var(--text-primary, #F5EDD6);
+
+  /* Semantic — map to our status colors */
+  --ok: var(--success, #4CAF7A);
+  --ok-muted: rgba(76, 175, 122, 0.75);
+  --ok-subtle: rgba(76, 175, 122, 0.08);
+  --destructive: var(--critical, #E05252);
+  --destructive-foreground: #fff;
+  --warn: var(--amber, #F0C040);
+  --warn-muted: rgba(240, 192, 64, 0.75);
+  --warn-subtle: rgba(240, 192, 64, 0.08);
+  --danger: var(--critical, #E05252);
+  --danger-muted: rgba(224, 82, 82, 0.75);
+  --danger-subtle: rgba(224, 82, 82, 0.08);
+  --info: #5B8DEF;
+
+  /* Focus */
+  --focus: rgba(201, 168, 76, 0.20);
+  --focus-ring: 0 0 0 2px var(--void), 0 0 0 3px rgba(201, 168, 76, 0.60);
+
+  /* Grid */
+  --grid-line: rgba(201, 168, 76, 0.03);
+
+  /* Radius */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-full: 9999px;
+  --radius: 10px;
+
+  /* Shadows */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
+  --shadow-xl: 0 24px 48px rgba(0, 0, 0, 0.5);
+  --shadow-glow: 0 0 24px var(--accent-glow);
+
+  /* Transitions (from base.css — needed by usage.css animations) */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --duration-fast: 100ms;
+  --duration-normal: 180ms;
+  --duration-slow: 300ms;
+
+  /* Font */
+  --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-display: var(--font-body);
+  --sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* Light theme overrides — matches BRANDING.md light theme */
+[data-theme="light"] {
+  --bg: #FAF8F3;
+  --bg-accent: #F5F0E8;
+  --bg-elevated: #FFFFFF;
+  --bg-hover: rgba(155, 125, 46, 0.05);
+  --bg-muted: rgba(0, 0, 0, 0.02);
+  --card: rgba(255, 255, 255, 0.90);
+  --card-foreground: #1A1815;
+  --card-highlight: rgba(155, 125, 46, 0.05);
+  --popover: rgba(255, 255, 255, 0.95);
+  --popover-foreground: #1A1815;
+  --panel: #FAF8F3;
+  --panel-strong: rgba(255, 255, 255, 0.80);
+  --panel-hover: rgba(155, 125, 46, 0.05);
+  --text: #1A1815;
+  --text-strong: #1A1815;
+  --chat-text: #1A1815;
+  --muted: #6B6560;
+  --muted-strong: #A09A90;
+  --muted-foreground: #6B6560;
+  --border: rgba(0, 0, 0, 0.08);
+  --border-strong: rgba(0, 0, 0, 0.12);
+  --border-hover: rgba(155, 125, 46, 0.25);
+  --border-subtle: rgba(0, 0, 0, 0.06);
+  --input: rgba(0, 0, 0, 0.03);
+  --ring: #9B7D2E;
+  --accent: #9B7D2E;
+  --accent-hover: #C9A84C;
+  --accent-muted: #7A6340;
+  --accent-subtle: rgba(155, 125, 46, 0.08);
+  --accent-foreground: #FFFFFF;
+  --accent-glow: rgba(155, 125, 46, 0.08);
+  --primary: #9B7D2E;
+  --primary-foreground: #FFFFFF;
+  --secondary: rgba(0, 0, 0, 0.02);
+  --secondary-foreground: #1A1815;
+  --focus: rgba(155, 125, 46, 0.20);
+  --focus-ring: 0 0 0 2px #FAF8F3, 0 0 0 3px rgba(155, 125, 46, 0.40);
+  --grid-line: rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.12);
+  /* Theme Z additions for chat */
+  --foreground: #1A1815;
+  --bg-content: rgba(255, 255, 255, 0.90);
+  --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+}

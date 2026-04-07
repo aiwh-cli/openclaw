@@ -1,0 +1,104 @@
+/* ━━━ BUTTONS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.btn {
+  padding: 7px 16px;
+  border: none; border-radius: 3px;
+  font-size: 12px; font-weight: 500; cursor: pointer;
+  font-family: 'Inter', sans-serif; line-height: 1;
+  display: inline-flex; align-items: center; gap: 6px;
+  position: relative; overflow: hidden;
+  transition: all 200ms var(--ease-smooth);
+}
+.btn:focus-visible { box-shadow: 0 0 0 2px var(--void), 0 0 0 4px rgba(var(--magenta-rgb),0.5); outline: none; }
+.btn:active { transform: scale(0.97); }
+
+/* Primary — magenta gradient + shimmer */
+.btn-primary {
+  background: linear-gradient(135deg, var(--magenta), var(--magenta-hot));
+  color: #000; font-weight: 600;
+  box-shadow: 0 2px 14px var(--magenta-glow);
+}
+.btn-primary::after {
+  content: '';
+  position: absolute; top: 0; left: -100%; width: 50%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.22), transparent);
+  transform: skewX(-15deg);
+  transition: left 0.5s ease;
+}
+.btn-primary:hover::after { left: 150%; }
+.btn-primary:hover { box-shadow: 0 4px 24px rgba(var(--magenta-rgb),0.45); transform: translateY(-1px); }
+
+/* Success */
+.btn-success { background: rgba(var(--success-rgb),0.15); border: 1px solid rgba(var(--success-rgb),0.4); color: var(--success); cursor: pointer; padding: 6px 16px; border-radius: 3px; font-size: 11px; font-weight: 600; }
+.btn-success:hover { background: rgba(var(--success-rgb),0.3); }
+
+/* Ghost */
+.btn-ghost {
+  background: transparent;
+  border: 1px solid var(--border-faint);
+  color: var(--text-muted);
+}
+.btn-ghost:hover { border-color: rgba(var(--magenta-rgb),0.35); color: var(--magenta); background: var(--magenta-dim); }
+.btn-sm  { padding: 5px 12px; font-size: 11px; }
+.btn-xs  { padding: 3px 8px;  font-size: 11px; }
+.btn-danger { background: var(--critical); color: #fff; box-shadow: 0 2px 12px rgba(var(--critical-rgb),0.3); }
+.btn-danger:hover { filter: brightness(1.12); transform: translateY(-1px); }
+
+.btn-icon-xs { padding: 2px 6px; border: 1px solid var(--border-faint); border-radius: 3px; background: rgba(18,18,26,0.8); color: var(--text-muted); cursor: pointer; font-size: 10px; font-family: inherit; transition: all 120ms; }
+.btn-icon-xs:hover { border-color: var(--border-dim); color: var(--text-primary); }
+.btn-danger-xs:hover { background: rgba(var(--critical-rgb),0.08); border-color: var(--critical); color: var(--critical); }
+.btn-run-xs { color: var(--success) !important; border-color: rgba(var(--success-rgb),0.3) !important; }
+.btn-run-xs:hover { background: rgba(var(--success-rgb),0.10) !important; border-color: var(--success) !important; }
+
+.btn-danger { background: rgba(var(--critical-rgb),0.1); border: 1px solid rgba(var(--critical-rgb),0.4); color: var(--critical); padding: 6px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.btn-danger:hover { background: rgba(var(--critical-rgb),0.25); border-color: var(--critical); }
+.btn-danger { background: rgba(255, 0, 60, 0.15); color: #ff3d6a; border: 1px solid rgba(255, 0, 60, 0.3); }
+.btn-danger:hover:not(:disabled) { background: rgba(255, 0, 60, 0.25); border-color: rgba(255, 0, 60, 0.5); }
+.btn-danger:disabled { opacity: 0.35; cursor: not-allowed; }
+.btn-danger-ghost { color: var(--critical) !important; opacity: 0.6; }
+.btn-danger-ghost:hover { opacity: 1; background: rgba(var(--critical-rgb), 0.08) !important; }
+
+.btn-warn { background: rgba(var(--amber-rgb),0.12); border: 1px solid rgba(var(--amber-rgb),0.3); color: var(--amber); font-size: 10px; padding: 2px 8px; border-radius: 3px; cursor: pointer; }
+.btn-warn:hover { background: rgba(var(--amber-rgb),0.25); }
+.btn-sm { font-size: 10px; padding: 2px 8px; }
+
+.btn-add-file { background: none; border: 1px dashed var(--border-dim); color: var(--text-muted); padding: 6px 12px; border-radius: 4px; cursor: pointer; font-family: var(--font-mono); font-size: 11px; transition: all 150ms; }
+.btn-add-file:hover { border-color: var(--accent); color: var(--accent); }
+
+.btn-icon {
+  width: 32px; height: 28px; border-radius: 6px; border: none;
+  font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s;
+}
+
+/* Review approve/reject buttons */
+.task-review-actions { display: flex; gap: 6px; margin-top: 8px; }
+.btn-review { display: flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 4px; border: 1px solid; font-size: 11px; font-family: var(--font-mono); cursor: pointer; transition: all 150ms; }
+.btn-review-approve { background: rgba(var(--success-rgb),0.08); border-color: rgba(var(--success-rgb),0.4); color: var(--success); }
+.btn-review-approve:hover { background: rgba(var(--success-rgb),0.2); border-color: var(--success); }
+.btn-review-reject { background: rgba(var(--critical-rgb),0.06); border-color: rgba(var(--critical-rgb),0.3); color: var(--text-muted); }
+.btn-review-reject:hover { background: rgba(var(--critical-rgb),0.15); border-color: var(--critical); color: var(--critical); }
+.btn-review-log { background: rgba(var(--accent-rgb),0.06); border-color: rgba(var(--accent-rgb),0.3); color: var(--accent); }
+.btn-review-log:hover { background: rgba(var(--accent-rgb),0.15); border-color: var(--accent); }
+
+.btn-xs { font-size: 11px; padding: 3px 8px; }
+
+/* ━━━ INPUTS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+select, input[type="text"], input[type="number"], textarea {
+  padding: 7px 11px;
+  background: rgba(18,18,26,0.85);
+  border: 1px solid var(--border-faint);
+  border-radius: 3px; color: var(--text-primary);
+  font-size: 12px; font-family: inherit; outline: none;
+  transition: border-color 200ms, box-shadow 200ms;
+}
+select:focus, input:focus, textarea:focus {
+  border-color: rgba(var(--magenta-rgb),0.45);
+  box-shadow: 0 0 0 3px rgba(var(--magenta-rgb),0.08);
+}
+
+/* ━━━ LIGHT THEME — BUTTONS/INPUTS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+[data-theme="light"] .btn-primary { color: #fff; }
+[data-theme="light"] select, [data-theme="light"] input[type="text"],
+[data-theme="light"] input[type="number"], [data-theme="light"] textarea {
+  background: rgba(248,248,252,0.9); color: var(--text-primary);
+}

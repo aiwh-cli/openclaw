@@ -1,0 +1,155 @@
+/* ━━━ OVERVIEW — ORBITAL LAYOUT ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+#view-overview.active {
+  display: flex; flex-direction: column;
+  height: auto; min-height: 100%;
+}
+
+/* ── Overview Agent Grid ── */
+.ov-agent-grid {
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 10px var(--sp-4) 0;
+  flex-shrink: 0;
+}
+.ov-row {
+  display: flex; gap: 8px;
+  justify-content: center;
+}
+.ov-section {
+  display: flex; align-items: center; gap: 6px;
+}
+.ov-section-label {
+  font-size: 8px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 1px;
+  color: var(--text-dim);
+  writing-mode: vertical-rl; text-orientation: mixed;
+  transform: rotate(180deg);
+  display: flex; align-items: center; gap: 4px;
+  white-space: nowrap;
+}
+.ov-section-lock {
+  writing-mode: horizontal-tb;
+  transform: rotate(180deg);
+  font-size: 7px; font-weight: 600;
+  color: var(--magenta);
+  background: rgba(var(--magenta-rgb),0.08);
+  border: 1px solid rgba(var(--magenta-rgb),0.2);
+  padding: 1px 4px; border-radius: 2px;
+  cursor: pointer; letter-spacing: 0.3px;
+}
+.ov-section-lock:hover { background: rgba(var(--magenta-rgb),0.15); }
+.ov-section-cards {
+  display: flex; flex-wrap: wrap; gap: 5px;
+}
+/* Locked modules removed — all modules unlocked */
+.ov-agent-card {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 10px 6px 8px; border-radius: 5px;
+  width: 100px; min-height: 120px;
+  cursor: pointer; transition: all 200ms var(--ease-smooth);
+  position: relative; text-align: center;
+  justify-content: center;
+}
+.ov-agent-card:hover {
+  border-color: var(--border-hover);
+  box-shadow: inset 0 0 20px rgba(var(--magenta-rgb),0.06), var(--shadow-glow);
+  transform: translateY(-2px);
+}
+.ov-agent-avatar {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: rgba(var(--magenta-rgb),0.06);
+  border: 1px solid rgba(var(--magenta-rgb),0.18);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; overflow: hidden;
+  color: var(--text-dim);
+}
+.ov-agent-avatar-img {
+  width: 100%; height: 100%; object-fit: cover; border-radius: 50%;
+}
+.ov-agent-name {
+  font-size: 10px; font-weight: 600; color: var(--text-primary);
+  word-break: break-word; line-height: 1.3;
+  width: 100%;
+}
+.ov-agent-tier {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 8px; text-transform: uppercase; letter-spacing: 0.5px;
+  color: var(--text-dim);
+  color: var(--text-dim);
+}
+.ov-agent-status { position: absolute; top: 3px; right: 3px; }
+
+/* Responsive: stack rows vertically */
+@media (max-width: 700px) {
+  .ov-row { flex-direction: column; align-items: center; }
+  .ov-section-label {
+    writing-mode: horizontal-tb; transform: none;
+  }
+}
+
+/* Stats bar across the top of overview */
+.orbital-stats-bar {
+  display: flex; gap: 10px; padding: 10px var(--sp-4) 0;
+  flex-shrink: 0; flex-wrap: wrap;
+}
+.ostat-card {
+  flex: 1; min-width: 100px; max-width: 200px;
+  padding: 12px 14px; border-radius: 4px;
+  cursor: default; transition: all 250ms var(--ease-smooth);
+}
+.ostat-card::before {
+  content: ''; position: absolute;
+  top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, var(--magenta), var(--cyan) 60%, transparent);
+}
+.ostat-card:hover { border-color: var(--border-hover); }
+.ostat-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 8px; letter-spacing: 2px; text-transform: uppercase;
+  color: var(--text-muted); margin-bottom: 6px;
+}
+.ostat-value {
+  font-size: 20px; font-weight: 400; letter-spacing: -0.5px;
+  color: var(--text-primary); line-height: 1; margin-bottom: 6px;
+  transition: text-shadow 250ms;
+}
+.ostat-card:hover .ostat-value {
+  color: #fff;
+  text-shadow: 0 0 20px rgba(var(--magenta-rgb),0.5);
+}
+.ostat-bar {
+  height: 1px; border-radius: 1px; overflow: hidden; margin-bottom: 4px;
+  background: rgba(255,255,255,0.06);
+}
+.ostat-bar-fill {
+  height: 100%; border-radius: 1px;
+  background: linear-gradient(90deg, var(--magenta), rgba(var(--magenta-rgb),0.3));
+  transition: width 800ms var(--ease-smooth);
+  box-shadow: 0 0 6px rgba(var(--magenta-rgb),0.4);
+}
+.ostat-bar-fill.cyan {
+  background: linear-gradient(90deg, var(--cyan), rgba(var(--cyan-rgb),0.3));
+  box-shadow: 0 0 6px rgba(var(--cyan-rgb),0.35);
+}
+.ostat-sub { font-size: 10px; color: var(--text-dim); }
+
+/* Overview panels grid */
+.overview-panels {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto auto;
+  gap: 10px;
+  padding: 10px var(--sp-4) 10px;
+  min-height: 0;
+}
+.panel-activity     { grid-column: 1; grid-row: 1; }
+.panel-cron         { grid-column: 2; grid-row: 1; }
+.panel-cost-chart   { grid-column: 1; grid-row: 2; }
+.panel-content-mini { grid-column: 2; grid-row: 2; }
+
+.cron-name { flex: 1; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+
+/* ━━━ LIGHT THEME — OVERVIEW ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+[data-theme="light"] .ov-agent-card { background: rgba(255,255,255,0.8); }
+[data-theme="light"] .ov-agent-card:hover { background: rgba(255,255,255,0.95); }
+[data-theme="light"] .ov-agent-avatar { background: rgba(0,0,0,0.03); border-color: rgba(0,0,0,0.08); }

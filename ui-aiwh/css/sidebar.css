@@ -1,0 +1,340 @@
+/* ━━━ HEX NAVIGATION RAIL ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   Extracted from style.css for code standards compliance.
+   Supports collapsed (72px) and expanded (200px) states.
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+#hex-rail {
+  grid-column: 1; grid-row: 2;
+  display: flex; flex-direction: column; align-items: center;
+  background: rgba(10, 10, 15, 0.90);
+  backdrop-filter: blur(20px);
+  border-right: 1px solid var(--border-faint);
+  z-index: 90; overflow-y: auto; overflow-x: hidden;
+  padding: var(--sp-3) 0;
+  transition: width 250ms var(--ease-smooth);
+  width: var(--hex-rail-w);
+}
+
+/* Glow edge */
+#hex-rail::after {
+  content: '';
+  position: absolute; top: var(--top-bar-h); right: -1px;
+  bottom: var(--bottom-ticker-h); width: 1px;
+  background: linear-gradient(180deg,
+    transparent 0%,
+    rgba(var(--magenta-rgb), 0.12) 30%,
+    rgba(var(--magenta-rgb), 0.06) 70%,
+    transparent 100%);
+  pointer-events: none;
+}
+
+.hex-rail-inner {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 2px; width: 100%; flex: 1;
+}
+.hex-spacer { flex: 1; min-height: 8px; }
+
+/* ─── Category label ──────────────────────────────────────── */
+.hex-category {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 8px; font-weight: 600;
+  letter-spacing: 1.8px; text-transform: uppercase;
+  color: var(--text-muted);
+  opacity: 0.5;
+  padding: 0 4px;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  transition: opacity 200ms;
+}
+
+/* ─── Divider line ────────────────────────────────────────── */
+.hex-divider {
+  width: 28px; height: 1px;
+  background: var(--border-faint);
+  margin: 4px 0 2px;
+  transition: width 200ms;
+}
+
+/* ─── Hex button ──────────────────────────────────────────── */
+.hex-btn {
+  position: relative;
+  width: 42px; height: 48px;
+  border: none; background: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: transform 250ms var(--ease-spring), filter 250ms var(--ease-smooth), width 250ms var(--ease-smooth);
+  outline: none;
+  margin-bottom: 10px;
+}
+.hex-btn:hover  { transform: scale(1.06); }
+.hex-btn:active { transform: scale(0.96); }
+.hex-btn:focus-visible { filter: drop-shadow(0 0 6px rgba(var(--magenta-rgb),0.6)); }
+
+/* Hover rotate the hex shape */
+.hex-btn:hover .hex-bg { transform: rotate(30deg); }
+.hex-bg {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  transition: transform 250ms var(--ease-spring);
+}
+.hex-fill {
+  fill: rgba(18, 18, 26, 0.70);
+  stroke: rgba(var(--magenta-rgb), 0.18);
+  transition: fill 200ms, stroke 200ms;
+  stroke-width: 1;
+}
+.hex-btn:hover .hex-fill {
+  fill: rgba(var(--magenta-rgb), 0.10);
+  stroke: rgba(var(--magenta-rgb), 0.45);
+}
+.hex-btn.active .hex-fill {
+  fill: rgba(var(--magenta-rgb), 0.14);
+  stroke: rgba(var(--magenta-rgb), 0.60);
+}
+.hex-btn.active {
+  filter: drop-shadow(0 0 8px rgba(var(--magenta-rgb), 0.40));
+  animation: hex-breathe 5s ease-in-out infinite;
+}
+@keyframes hex-breathe {
+  0%, 100% { filter: drop-shadow(0 0 8px  rgba(var(--magenta-rgb),0.40)); }
+  50%       { filter: drop-shadow(0 0 14px rgba(var(--magenta-rgb),0.60)); }
+}
+
+/* Chat hex accent */
+.hex-fill-accent {
+  fill: rgba(var(--magenta-rgb), 0.18) !important;
+  stroke: rgba(var(--magenta-rgb), 0.50) !important;
+}
+.hex-chat-btn { filter: drop-shadow(0 0 6px rgba(var(--magenta-rgb),0.25)); }
+
+/* Wealth gold fill */
+.hex-fill-gold {
+  fill: rgba(var(--magenta-rgb), 0.12) !important;
+  stroke: rgba(var(--magenta-rgb), 0.40) !important;
+}
+
+.hex-icon {
+  position: relative; z-index: 1;
+  color: var(--text-muted);
+  transition: color 200ms;
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: none;
+}
+.hex-btn:hover .hex-icon,
+.hex-btn.active .hex-icon { color: var(--magenta); }
+.hex-chat-btn .hex-icon   { color: rgba(var(--magenta-rgb), 0.9); }
+.hex-btn-sm { width: 36px; height: 38px; margin-bottom: 8px; }
+
+/* ─── Hex label ───────────────────────────────────────────── */
+.hex-label {
+  position: absolute;
+  bottom: -9px; left: 50%;
+  transform: translateX(-50%);
+  font-family: 'Inter', sans-serif;
+  font-size: 9px; font-weight: 500;
+  letter-spacing: 0.3px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  pointer-events: none;
+  transition: color 200ms, opacity 200ms;
+}
+.hex-btn:hover .hex-label,
+.hex-btn.active .hex-label { color: var(--magenta); }
+
+/* ─── Hex badge ───────────────────────────────────────────── */
+.hex-badge {
+  position: absolute; top: 2px; right: 0;
+  min-width: 16px; height: 16px; border-radius: 8px;
+  background: var(--critical); color: #fff;
+  font-size: 9px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0 4px;
+}
+
+/* Legacy tooltip — keep for accessibility */
+.hex-tooltip {
+  position: absolute; left: calc(100% + 10px); top: 50%;
+  transform: translateY(-50%) translateX(-4px);
+  background: rgba(18, 18, 26, 0.92);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--border-dim);
+  color: var(--text-primary);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; font-weight: 400;
+  letter-spacing: 1.5px; text-transform: uppercase;
+  padding: 5px 10px; border-radius: 3px;
+  white-space: nowrap;
+  opacity: 0; pointer-events: none;
+  transition: opacity 150ms, transform 150ms var(--ease-out);
+  box-shadow: var(--shadow-sm), 0 0 12px rgba(var(--magenta-rgb),0.08);
+  z-index: 200;
+}
+.hex-btn:hover .hex-tooltip {
+  opacity: 1; transform: translateY(-50%) translateX(0);
+}
+.hex-tooltip::before {
+  content: '';
+  position: absolute; top: 50%; right: 100%;
+  transform: translateY(-50%);
+  border: 4px solid transparent;
+  border-right-color: var(--border-dim);
+}
+
+/* ─── Collapse toggle ────────────────────────────────────── */
+.hex-collapse-toggle {
+  width: 28px; height: 28px;
+  border: 1px solid var(--border-dim);
+  border-radius: 6px;
+  background: rgba(18, 18, 26, 0.50);
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: color 200ms, border-color 200ms, background 200ms;
+  margin-top: 4px;
+  flex-shrink: 0;
+}
+.hex-collapse-toggle:hover {
+  color: var(--magenta);
+  border-color: var(--border-hover);
+  background: rgba(var(--magenta-rgb), 0.06);
+}
+
+/* ━━━ EXPANDED STATE (200px) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+#hex-rail:not(.collapsed) {
+  align-items: flex-start;
+}
+#hex-rail:not(.collapsed) .hex-rail-inner {
+  align-items: flex-start;
+  padding: 0 12px;
+}
+#hex-rail:not(.collapsed) .hex-btn {
+  width: 100%;
+  height: auto;
+  padding: 8px 10px;
+  margin-bottom: 2px;
+  border-radius: 8px;
+  justify-content: flex-start;
+  gap: 10px;
+}
+#hex-rail:not(.collapsed) .hex-btn:hover {
+  transform: none;
+  background: rgba(var(--magenta-rgb), 0.06);
+}
+#hex-rail:not(.collapsed) .hex-btn:active {
+  transform: none;
+}
+#hex-rail:not(.collapsed) .hex-btn.active {
+  background: rgba(var(--magenta-rgb), 0.10);
+}
+
+/* Hide hex polygon in expanded mode — use subtle bg instead */
+#hex-rail:not(.collapsed) .hex-bg {
+  display: none;
+}
+
+/* Icon in expanded — inline, no absolute positioning */
+#hex-rail:not(.collapsed) .hex-icon {
+  position: relative;
+  width: 20px; height: 20px;
+  flex-shrink: 0;
+}
+
+/* Label in expanded — inline next to icon */
+#hex-rail:not(.collapsed) .hex-label {
+  position: static;
+  transform: none;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+  opacity: 1;
+}
+
+/* Category in expanded — full text visible, left-aligned */
+#hex-rail:not(.collapsed) .hex-category {
+  font-size: 9px;
+  letter-spacing: 2px;
+  padding: 0 10px;
+  margin-bottom: 2px;
+  opacity: 0.4;
+  width: 100%;
+  text-align: left;
+}
+
+/* Divider in expanded — full width */
+#hex-rail:not(.collapsed) .hex-divider {
+  width: calc(100% - 20px);
+  margin: 6px 10px 2px;
+}
+
+/* Collapse toggle in expanded — right-aligned */
+#hex-rail:not(.collapsed) .hex-collapse-toggle {
+  align-self: flex-end;
+  margin-right: 0;
+}
+
+/* Badge in expanded mode */
+#hex-rail:not(.collapsed) .hex-badge {
+  position: static;
+  margin-left: auto;
+}
+
+/* ━━━ COLLAPSED STATE (72px) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+#hex-rail.collapsed .hex-category {
+  font-size: 7px;
+  letter-spacing: 1.2px;
+}
+#hex-rail.collapsed .hex-collapse-toggle {
+  align-self: center;
+}
+
+/* ━━━ LIGHT THEME ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+[data-theme="light"] #hex-rail { background: rgba(248,248,252,0.92); }
+[data-theme="light"] .hex-fill { fill: rgba(240,241,245,0.8); }
+[data-theme="light"] .hex-tooltip { background: rgba(255,255,255,0.95); }
+[data-theme="light"] .hex-collapse-toggle {
+  background: rgba(240,241,245,0.8);
+  border-color: rgba(0,0,0,0.08);
+}
+[data-theme="light"] #hex-rail:not(.collapsed) .hex-btn:hover {
+  background: rgba(0, 144, 160, 0.06);
+}
+[data-theme="light"] #hex-rail:not(.collapsed) .hex-btn.active {
+  background: rgba(0, 144, 160, 0.10);
+}
+
+/* ━━━ RESPONSIVE ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+@media (max-width: 1200px) {
+  /* Force collapsed on tablet */
+  #hex-rail {
+    width: 72px !important;
+  }
+  #hex-rail .hex-bg { display: block !important; }
+  #hex-rail .hex-btn {
+    width: 42px !important; height: 48px !important;
+    padding: 0 !important; margin-bottom: 10px !important;
+    border-radius: 0 !important; justify-content: center !important;
+    gap: 0 !important; background: none !important;
+  }
+  #hex-rail .hex-btn-sm {
+    width: 36px !important; height: 38px !important;
+    margin-bottom: 8px !important;
+  }
+  #hex-rail .hex-label {
+    position: absolute !important; bottom: -9px !important;
+    left: 50% !important; transform: translateX(-50%) !important;
+    font-size: 9px !important;
+  }
+  #hex-rail .hex-icon {
+    width: auto !important; height: auto !important;
+  }
+  #hex-rail .hex-category {
+    font-size: 7px !important; letter-spacing: 1.2px !important;
+    text-align: center !important; padding: 0 4px !important;
+  }
+  #hex-rail .hex-divider {
+    width: 28px !important; margin: 4px 0 2px !important;
+  }
+  #hex-rail .hex-rail-inner {
+    align-items: center !important; padding: 0 !important;
+  }
+  #hex-rail .hex-collapse-toggle { display: none; }
+}

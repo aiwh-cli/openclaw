@@ -1,0 +1,156 @@
+/* ─── AIWH Mission Control v7 — Sovereign Command ──────────────
+   Dark: Sovereign Brutalism — charcoal base, gold accents.
+   Light: Preserved original teal/violet palette (untouched).
+   Fonts: JetBrains Mono (headings/data) + Inter (body)
+   ─────────────────────────────────────────────────────────── */
+
+/* ━━━ DESIGN TOKENS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+:root {
+  /* Color system — Sovereign Brutalism: gold primary, warm muted secondary */
+  --void:          #0A0A0C;
+  --surface:       rgba(14, 14, 18, 0.65);
+  --surface-solid: #0D0D10;
+  --surface-hi:    rgba(20, 20, 24, 0.80);
+
+  --magenta:       #C9A84C;
+  --magenta-hot:   #F0C040;
+  --magenta-dim:   rgba(201, 168, 76, 0.10);
+  --magenta-glow:  rgba(201, 168, 76, 0.18);
+  --magenta-rgb:   201, 168, 76;
+
+  /* Accent alias — same as magenta (primary gold) */
+  --accent:        #C9A84C;
+  --accent-rgb:    201, 168, 76;
+
+  --cyan:          #A0845C;
+  --cyan-dim:      rgba(160, 132, 92, 0.10);
+  --cyan-glow:     rgba(160, 132, 92, 0.18);
+  --cyan-rgb:      160, 132, 92;
+
+  --amber:         #F0C040;
+  --amber-rgb:     240, 192, 64;
+  --amber-glow:    rgba(240, 192, 64, 0.18);
+
+  --critical:      #E05252;
+  --critical-rgb:  224, 82, 82;
+
+  --success:       #4CAF7A;
+  --success-rgb:   76, 175, 122;
+
+  --text-primary:  #F5EDD6;
+  --text-muted:    #8A8578;
+  --text-dim:      #4A4740;
+
+  /* Layout */
+  --top-bar-h:       40px;
+  --hex-rail-w:      200px;
+  --bottom-ticker-h: 28px;
+  --right-panel-w:   380px;
+
+  /* Spacing (8px grid) */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+
+  /* Easing */
+  --ease-out:    cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in:     cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Border tokens */
+  --border-faint:  rgba(201, 168, 76, 0.06);
+  --border-dim:    rgba(201, 168, 76, 0.12);
+  --border-hover:  rgba(201, 168, 76, 0.30);
+  --border-active: rgba(201, 168, 76, 0.55);
+
+  --shadow-sm: 0 2px 16px rgba(0,0,0,0.80);
+  --shadow:    0 4px 32px rgba(0,0,0,0.88);
+  --shadow-md: 0 8px 48px rgba(0,0,0,0.92);
+  --shadow-glow: 0 0 20px rgba(var(--magenta-rgb), 0.10);
+}
+
+/* ━━━ RESET ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html { color-scheme: dark; }
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--void);
+  color: var(--text-primary);
+  font-size: 13px;
+  line-height: 1.5;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.mono { font-family: 'JetBrains Mono', monospace; }
+
+/* ━━━ LIGHT THEME TOKENS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+[data-theme="light"] {
+  --void:          #f0f1f5;
+  --surface:       rgba(255, 255, 255, 0.75);
+  --surface-solid: #ffffff;
+  --surface-hi:    rgba(255, 255, 255, 0.90);
+
+  --magenta:       #0090a0;
+  --magenta-hot:   #007a8c;
+  --magenta-dim:   rgba(0, 144, 160, 0.08);
+  --magenta-glow:  rgba(0, 144, 160, 0.15);
+  --magenta-rgb:   0, 144, 160;
+
+  --cyan:          #9b30ff;
+  --cyan-dim:      rgba(155, 48, 255, 0.08);
+  --cyan-glow:     rgba(155, 48, 255, 0.15);
+  --cyan-rgb:      155, 48, 255;
+
+  --text-primary:  #1a1a2e;
+  --text-muted:    #555570;
+  --text-dim:      #999aaa;
+
+  --border-faint:  rgba(0, 144, 160, 0.10);
+  --border-dim:    rgba(0, 144, 160, 0.18);
+  --border-hover:  rgba(0, 144, 160, 0.35);
+  --border-active: rgba(0, 144, 160, 0.55);
+
+  --shadow-sm: 0 2px 12px rgba(0,0,0,0.08);
+  --shadow:    0 4px 24px rgba(0,0,0,0.10);
+  --shadow-md: 0 8px 40px rgba(0,0,0,0.12);
+  --shadow-glow: 0 0 20px rgba(0, 144, 160, 0.08);
+
+  color-scheme: light;
+}
+[data-theme="light"] body { background: var(--void); color: var(--text-primary); }
+
+/* Scrollbar */
+::-webkit-scrollbar             { width: 3px; height: 3px; }
+::-webkit-scrollbar-track       { background: transparent; }
+::-webkit-scrollbar-thumb       { background: rgba(var(--magenta-rgb),0.18); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(var(--magenta-rgb),0.35); }
+[data-theme="light"] ::-webkit-scrollbar-thumb { background: rgba(0, 144, 160, 0.20); }
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover { background: rgba(0, 144, 160, 0.35); }
+
+/* Focus ring — global */
+:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--void), 0 0 0 4px rgba(var(--magenta-rgb),0.55) !important;
+}
+
+/* ━━━ MISC / UTILITIES ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.hidden   { display: none !important; }
+.truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.text-muted { color: var(--text-muted); font-size: 11px; }
+
+/* ━━━ REDUCED MOTION ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+  #bg-canvas   { display: none; }
+  #orbital-canvas { display: none; }
+}
