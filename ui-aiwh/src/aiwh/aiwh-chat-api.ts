@@ -12,6 +12,12 @@ import type { SessionsListResult } from "../ui-deps/types.ts";
 export interface AgentEntry {
   id: string;
   name?: string;
+  display_name?: string;
+  displayName?: string;
+  model?: string;
+  modelTier?: string;
+  description?: string;
+  role?: string;
   identity?: { name?: string; avatarUrl?: string };
 }
 
@@ -67,8 +73,8 @@ export function escHtml(str: string): string {
 
 export async function loadAgentsList(): Promise<AgentsList> {
   try {
-    const agents = await api<AgentEntry[]>("/agents");
-    const list = Array.isArray(agents) ? agents : [];
+    const data = await api<AgentEntry[] | { agents?: AgentEntry[] }>("/agents");
+    const list = Array.isArray(data) ? data : data?.agents || [];
     return { agents: list, defaultId: "main" };
   } catch {
     return { agents: [], defaultId: "main" };
@@ -227,9 +233,13 @@ export function getModelShortLabel(model: unknown): string {
 
 // ─── SSE Chat Stream ───────────────────────────────────────
 
+export type { ToolSseEvent } from "./aiwh-chat-tool-stream.ts";
+import type { ToolSseEvent } from "./aiwh-chat-tool-stream.ts";
+
 export interface SseCallbacks {
   onDelta: (fullText: string) => void;
   onModelChange: (modelId: string) => void;
+  onToolEvent: (evt: ToolSseEvent) => void;
   onDone: (streamedText: string | null) => void;
   onError: (message: string) => void;
 }
@@ -300,12 +310,8 @@ export async function sendChatStream(
 
         if (type === "delta") {
           const delta = event.delta as string;
-          // Delta may be full accumulated text or incremental
-          if (delta.length >= accumulated.length) {
-            accumulated = delta;
-          } else {
-            accumulated += delta;
-          }
+          // chat-proxy.js sends incremental deltas — just append
+          accumulated += delta;
           callbacks.onDelta(accumulated);
         } else if (type === "model_change" || type === "model") {
           const modelId = (event.modelId || event.model || "") as string;
@@ -314,10 +320,11 @@ export async function sendChatStream(
           }
         } else if (type === "done") {
           callbacks.onDone(accumulated || null);
+        } else if (type === "tool_start" || type === "tool_end" || type === "agent_event") {
+          callbacks.onToolEvent(event as unknown as ToolSseEvent);
         } else if (type === "error") {
           callbacks.onError((event.error as string) || "Unknown error");
         }
-        // tool_start / tool_end — stream handles these visually
       } catch {
         /* malformed event */
       }
@@ -350,6 +357,58 @@ export async function createNewSession(agentId: string, sessionKey: string): Pro
     });
   } catch {
     /* empty */
+  }
+}
+
+/** Delete a chat session */
+export async function deleteSession(sessionId: string): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const res = await fetch(`/api/chat/sessions/${encodeURIComponent(sessionId)}`, {
+      method: "DELETE",
+    });
+    const data = (await res.json()) as { ok?: boolean; error?: string };
+    return { ok: data.ok === true, error: data.error };
+  } catch (e) {
+    return { ok: false, error: (e as Error).message };
+  }
+}
+
+/** Rename a chat session */
+export async function renameSession(sessionId: string, label: string): Promise<{ ok: boolean }> {
+  try {
+    await fetch(`/api/chat/sessions/${encodeURIComponent(sessionId)}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ label }),
+    });
+    return { ok: true };
+  } catch {
+    return { ok: false };
+  }
+}
+
+/** Raw session row from the dashboard API (before mapping to gateway types) */
+export interface RawSessionRow {
+  session_id: string;
+  agent_id: string;
+  label?: string;
+  last_message?: string;
+  last_message_at?: string;
+  kind?: string;
+  model?: string;
+  tokens?: number;
+}
+
+/** Load raw session rows for the sidebar (richer than gateway-typed result) */
+export async function loadRawChatSessions(agentId: string): Promise<RawSessionRow[]> {
+  try {
+    const rows = await api<RawSessionRow[]>(`/chat/sessions?agentId=${agentId}`);
+    if (!Array.isArray(rows)) {
+      return [];
+    }
+    return rows.filter((s) => s.agent_id === agentId);
+  } catch {
+    return [];
   }
 }
 

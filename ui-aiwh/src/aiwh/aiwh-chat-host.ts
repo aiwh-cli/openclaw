@@ -25,6 +25,19 @@ import {
   type AgentEntry,
   type AvailableModel,
 } from "./aiwh-chat-api.ts";
+import {
+  type ScrollState,
+  createScrollState,
+  resetScrollState,
+  scheduleChatScroll,
+  handleChatScroll,
+} from "./aiwh-chat-scroll.ts";
+import {
+  type ToolStreamState,
+  createToolStreamState,
+  resetToolStream,
+  handleToolEvent,
+} from "./aiwh-chat-tool-stream.ts";
 
 @customElement("aiwh-chat-host")
 export class AiwhChatHost extends LitElement {
@@ -49,11 +62,16 @@ export class AiwhChatHost extends LitElement {
   @state() private _sidebarContent: string | null = null;
   @state() private _contextTokens: number | null = null;
   @state() private _contextMessageCount = 0;
+  @state() private _splitRatio = 0.6;
+  @state() private _toolMessages: unknown[] = [];
+  @state() private _streamSegments: Array<{ text: string; ts: number }> = [];
 
   private _abortController: AbortController | null = null;
   private _connectionInterval: ReturnType<typeof setInterval> | null = null;
+  private _timestampInterval: ReturnType<typeof setInterval> | null = null;
   private _historySeq = 0;
-  private _userScrolledUp = false;
+  private _scroll: ScrollState = createScrollState();
+  private _toolStream: ToolStreamState = createToolStreamState();
 
   private _agentSwitchHandler = ((e: CustomEvent) => {
     this._switchAgent(e.detail.agentId);
@@ -67,6 +85,8 @@ export class AiwhChatHost extends LitElement {
     super.connectedCallback();
     void this._init();
     this._connectionInterval = setInterval(() => void this._checkConnection(), 15000);
+    // Re-render every 60s so relative timestamps ("2m ago") stay fresh
+    this._timestampInterval = setInterval(() => this.requestUpdate(), 60_000);
     document.addEventListener("aiwh-agent-switch", this._agentSwitchHandler);
     document.addEventListener("aiwh-session-switch", this._sessionSwitchHandler);
     (window as Record<string, unknown>).__aiwhChatHost = this;
@@ -77,6 +97,9 @@ export class AiwhChatHost extends LitElement {
     resetChatViewState();
     if (this._connectionInterval) {
       clearInterval(this._connectionInterval);
+    }
+    if (this._timestampInterval) {
+      clearInterval(this._timestampInterval);
     }
     document.removeEventListener("aiwh-agent-switch", this._agentSwitchHandler);
     document.removeEventListener("aiwh-session-switch", this._sessionSwitchHandler);
@@ -132,9 +155,11 @@ export class AiwhChatHost extends LitElement {
     const data = await switchModel(this._agentId, modelId);
     if (data.ok && data.model) {
       this._currentModel = data.model;
-      if (typeof (window as Record<string, unknown>).updateModelBadge === "function") {
-        (window as Record<string, unknown>).updateModelBadge(this._agentId, data.model);
-      }
+      document.dispatchEvent(
+        new CustomEvent("aiwh-model-update", {
+          detail: { agentId: this._agentId, model: data.model },
+        }),
+      );
     }
   }
 
@@ -177,8 +202,11 @@ export class AiwhChatHost extends LitElement {
     this._sending = true;
     this._stream = "";
     this._streamStartedAt = Date.now();
+    this._toolMessages = [];
+    this._streamSegments = [];
+    resetToolStream(this._toolStream);
     this._abortController = new AbortController();
-    this._userScrolledUp = false;
+    resetScrollState(this._scroll);
 
     try {
       const result = await sendChatStream(
@@ -194,6 +222,25 @@ export class AiwhChatHost extends LitElement {
           onModelChange: (id) => {
             this._currentModel = id;
           },
+          onToolEvent: (evt) => {
+            handleToolEvent(
+              this._toolStream,
+              evt,
+              (msgs) => {
+                this._toolMessages = msgs;
+              },
+              () => {
+                // Commit current streamed text as a segment before tool card
+                if (this._stream) {
+                  this._streamSegments = [
+                    ...this._streamSegments,
+                    { text: this._stream, ts: Date.now() },
+                  ];
+                  this._stream = "";
+                }
+              },
+            );
+          },
           onDone: (streamed) => {
             if (streamed) {
               this._messages = [
@@ -203,8 +250,12 @@ export class AiwhChatHost extends LitElement {
             }
             this._stream = null;
             this._streamStartedAt = null;
+            this._toolMessages = [];
+            this._streamSegments = [];
+            resetToolStream(this._toolStream);
             void this._loadHistory();
             void this._loadSessions();
+            document.dispatchEvent(new CustomEvent("aiwh-sidebar-refresh"));
           },
           onError: (msg) => {
             this._error = msg;
@@ -257,6 +308,7 @@ export class AiwhChatHost extends LitElement {
     this._assistantAvatar = agent?.identity?.avatarUrl || null;
     this._messages = [];
     this._loading = true;
+    resetScrollState(this._scroll);
     void Promise.all([this._loadSessions(), this._loadHistory(), this._loadModel()]);
   }
 
@@ -264,6 +316,7 @@ export class AiwhChatHost extends LitElement {
     this._sessionKey = sessionKey;
     this._messages = [];
     this._loading = true;
+    resetScrollState(this._scroll);
     void this._loadHistory();
   }
 
@@ -294,44 +347,35 @@ export class AiwhChatHost extends LitElement {
   private _refresh() {
     void this._loadHistory();
     void this._loadSessions();
-    try {
-      const fn = (window as Record<string, unknown>).loadChatSessions;
-      if (typeof fn === "function") {
-        (fn as () => void)();
-      }
-    } catch {
-      /* empty */
-    }
+    document.dispatchEvent(new CustomEvent("aiwh-sidebar-refresh"));
   }
 
-  private _scrollToBottom() {
-    requestAnimationFrame(() => {
-      const thread = this.querySelector(".chat-thread") as HTMLElement | null;
-      if (thread) {
-        thread.scrollTop = thread.scrollHeight;
-      }
-    });
+  private _scheduleScroll(force = false, smooth = false) {
+    scheduleChatScroll(
+      this._scroll,
+      this.updateComplete,
+      (sel) => this.querySelector(sel),
+      force,
+      smooth,
+    );
+    // Trigger re-render if "new messages" flag changed
+    if (this._scroll.chatNewMessagesBelow) {
+      this.requestUpdate();
+    }
   }
 
   private _handleChatScroll(e: Event) {
-    const el = e.target as HTMLElement;
-    if (!el) {
-      return;
-    }
-    const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
-    this._userScrolledUp = !atBottom;
+    handleChatScroll(this._scroll, e);
   }
 
   override updated(changed: Map<string, unknown>) {
     super.updated(changed);
-    if (!this._userScrolledUp) {
-      if (changed.has("_messages") || changed.has("_stream") || changed.has("_loading")) {
-        this._scrollToBottom();
-      }
+    if (changed.has("_messages") || changed.has("_stream") || changed.has("_loading")) {
+      this._scheduleScroll();
     }
     if (changed.has("_loading") && !this._loading) {
-      this._userScrolledUp = false;
-      this._scrollToBottom();
+      resetScrollState(this._scroll);
+      this._scheduleScroll(true);
     }
   }
 
@@ -346,11 +390,12 @@ export class AiwhChatHost extends LitElement {
       sending: this._sending,
       canAbort: this._sending || this._stream !== null,
       messages: this._messages,
-      toolMessages: [],
-      streamSegments: [],
+      toolMessages: this._toolMessages,
+      streamSegments: this._streamSegments,
       stream: this._stream,
       streamStartedAt: this._streamStartedAt,
       draft: this._draft,
+      getDraft: () => this._draft,
       queue: [],
       connected: this._connected,
       canSend: this._connected && !this._sending,
@@ -358,6 +403,7 @@ export class AiwhChatHost extends LitElement {
       error: this._error,
       sessions: this._sessions,
       focusMode: false,
+      splitRatio: this._splitRatio,
       sidebarOpen: this._sidebarOpen,
       sidebarContent: this._sidebarContent,
       assistantName: this._assistantName,
@@ -366,11 +412,15 @@ export class AiwhChatHost extends LitElement {
       onAttachmentsChange: (atts) => {
         this._attachments = atts;
       },
+      onRequestUpdate: () => this.requestUpdate(),
       onRefresh: () => {
         void this._loadHistory();
         void this._loadSessions();
       },
       onToggleFocusMode: () => {},
+      onSplitRatioChange: (ratio: number) => {
+        this._splitRatio = ratio;
+      },
       onDraftChange: (text) => {
         this._draft = text;
       },
@@ -392,10 +442,10 @@ export class AiwhChatHost extends LitElement {
       },
       onChatScroll: (e: Event) => this._handleChatScroll(e),
       onScrollToBottom: () => {
-        this._userScrolledUp = false;
-        this._scrollToBottom();
+        resetScrollState(this._scroll);
+        this._scheduleScroll(true);
       },
-      showNewMessages: this._userScrolledUp && (this._stream !== null || this._sending),
+      showNewMessages: this._scroll.chatNewMessagesBelow,
     };
     const modelLabel = getModelShortLabel(this._currentModel);
     const isBusy = this._sending || this._stream !== null;

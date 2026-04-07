@@ -1,8 +1,9 @@
 import { html, nothing } from "lit";
 import { unsafeHTML } from "lit/directives/unsafe-html.js";
-import { getSafeLocalStorage } from "../ui-deps/local-storage.ts";
+import { extractMediaPaths } from "../aiwh/aiwh-media-block.ts";
 import type { AssistantIdentity } from "../ui-deps/assistant-identity.ts";
 import { icons } from "../ui-deps/icons.ts";
+import { getSafeLocalStorage } from "../ui-deps/local-storage.ts";
 import { toSanitizedMarkdownHtml } from "../ui-deps/markdown.ts";
 import { openExternalUrlSafe } from "../ui-deps/open-external-url.ts";
 import { detectTextDirection } from "../ui-deps/text-direction.ts";
@@ -17,7 +18,38 @@ import {
 import { isToolResultMessage, normalizeRoleForGrouping } from "./message-normalizer.ts";
 import { isTtsSupported, speakText, stopTts, isTtsSpeaking } from "./speech.ts";
 import { extractToolCards, renderToolCardSidebar } from "./tool-cards.ts";
-import { extractMediaPaths } from "../aiwh/aiwh-media-block.ts";
+
+/** Format a timestamp as relative time ("just now", "2m ago", "1h ago") with absolute tooltip. */
+function formatRelativeTime(ts: number): { text: string; title: string } {
+  const now = Date.now();
+  const diff = Math.max(0, now - ts);
+  const seconds = Math.floor(diff / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+
+  let text: string;
+  if (seconds < 60) {
+    text = "just now";
+  } else if (minutes < 60) {
+    text = `${minutes}m ago`;
+  } else if (hours < 24) {
+    text = `${hours}h ago`;
+  } else if (days === 1) {
+    text = "yesterday";
+  } else {
+    text = `${days}d ago`;
+  }
+
+  const title = new Date(ts).toLocaleString([], {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+
+  return { text, title };
+}
 
 type ImageBlock = {
   url: string;
@@ -83,10 +115,7 @@ export function renderStreamingGroup(
   assistant?: AssistantIdentity,
   basePath?: string,
 ) {
-  const timestamp = new Date(startedAt).toLocaleTimeString([], {
-    hour: "numeric",
-    minute: "2-digit",
-  });
+  const ts = formatRelativeTime(startedAt);
   const name = assistant?.name ?? "Assistant";
 
   return html`
@@ -104,7 +133,7 @@ export function renderStreamingGroup(
         )}
         <div class="chat-group-footer">
           <span class="chat-sender-name">${name}</span>
-          <span class="chat-group-timestamp">${timestamp}</span>
+          <span class="chat-group-timestamp" title="${ts.title}">${ts.text}</span>
         </div>
       </div>
     </div>
@@ -143,10 +172,7 @@ export function renderMessageGroup(
         : normalizedRole === "tool"
           ? "tool"
           : "other";
-  const timestamp = new Date(group.timestamp).toLocaleTimeString([], {
-    hour: "numeric",
-    minute: "2-digit",
-  });
+  const ts = formatRelativeTime(group.timestamp);
 
   // Aggregate usage/cost/model across all messages in the group
   const meta = extractGroupMeta(group, opts.contextWindow ?? null);
@@ -175,14 +201,12 @@ export function renderMessageGroup(
         )}
         <div class="chat-group-footer">
           <span class="chat-sender-name">${who}</span>
-          <span class="chat-group-timestamp">${timestamp}</span>
+          <span class="chat-group-timestamp" title="${ts.title}">${ts.text}</span>
           ${renderMessageMeta(meta)}
           ${normalizedRole === "assistant" && isTtsSupported() ? renderTtsButton(group) : nothing}
-          ${
-            opts.onDelete
-              ? renderDeleteButton(opts.onDelete, normalizedRole === "user" ? "left" : "right")
-              : nothing
-          }
+          ${opts.onDelete
+            ? renderDeleteButton(opts.onDelete, normalizedRole === "user" ? "left" : "right")
+            : nothing}
         </div>
       </div>
     </div>
@@ -587,8 +611,12 @@ function renderMessageImages(images: ImageBlock[]) {
 
 /** Known media-generating tool names */
 const MEDIA_TOOL_NAMES = new Set([
-  "video_generate", "image_generate", "music_generate",
-  "video_generation", "image_generation", "music_generation",
+  "video_generate",
+  "image_generate",
+  "music_generate",
+  "video_generation",
+  "image_generation",
+  "music_generation",
 ]);
 
 /**
@@ -600,7 +628,9 @@ function renderInlineMedia(toolCards: ToolCard[]) {
   const mediaPaths: Array<{ path: string; type: string }> = [];
 
   for (const card of toolCards) {
-    if (card.kind !== "result" || !card.text) {continue;}
+    if (card.kind !== "result" || !card.text) {
+      continue;
+    }
     // Check if it's a known media tool
     const isMediaTool = MEDIA_TOOL_NAMES.has(card.name.toLowerCase());
     // Extract file paths from tool output
@@ -617,16 +647,22 @@ function renderInlineMedia(toolCards: ToolCard[]) {
             mediaPaths.push(...detectedPaths);
           }
         }
-      } catch { /* not JSON */ }
+      } catch {
+        /* not JSON */
+      }
     }
   }
 
-  if (mediaPaths.length === 0) {return nothing;}
+  if (mediaPaths.length === 0) {
+    return nothing;
+  }
 
   // Deduplicate by path
   const seen = new Set<string>();
   const unique = mediaPaths.filter((m) => {
-    if (seen.has(m.path)) {return false;}
+    if (seen.has(m.path)) {
+      return false;
+    }
     seen.add(m.path);
     return true;
   });
@@ -634,11 +670,7 @@ function renderInlineMedia(toolCards: ToolCard[]) {
   return html`
     <div class="chat-inline-media">
       ${unique.map(
-        (m) =>
-          html`<aiwh-media-block
-            .src=${m.path}
-            .type=${m.type}
-          ></aiwh-media-block>`,
+        (m) => html`<aiwh-media-block .src=${m.path} .type=${m.type}></aiwh-media-block>`,
       )}
     </div>
   `;
@@ -792,86 +824,72 @@ function renderGroupedMessage(
 
   return html`
     <div class="${bubbleClasses}">
-      ${
-        hasActions
-          ? html`<div class="chat-bubble-actions">
+      ${hasActions
+        ? html`<div class="chat-bubble-actions">
             ${canExpand ? renderExpandButton(markdown!, onOpenSidebar!) : nothing}
             ${canCopyMarkdown ? renderCopyAsMarkdownButton(markdown!) : nothing}
           </div>`
-          : nothing
-      }
-      ${
-        isToolMessage
-          ? html`
+        : nothing}
+      ${isToolMessage
+        ? html`
             <details class="chat-tool-msg-collapse">
               <summary class="chat-tool-msg-summary">
                 <span class="chat-tool-msg-summary__icon">${icons.zap}</span>
                 <span class="chat-tool-msg-summary__label">Tool output</span>
-                ${
-                  toolSummaryLabel
-                    ? html`<span class="chat-tool-msg-summary__names">${toolSummaryLabel}</span>`
-                    : toolPreview
-                      ? html`<span class="chat-tool-msg-summary__preview">${toolPreview}</span>`
-                      : nothing
-                }
+                ${toolSummaryLabel
+                  ? html`<span class="chat-tool-msg-summary__names">${toolSummaryLabel}</span>`
+                  : toolPreview
+                    ? html`<span class="chat-tool-msg-summary__preview">${toolPreview}</span>`
+                    : nothing}
               </summary>
               <div class="chat-tool-msg-body">
                 ${renderMessageImages(images)}
-                ${
-                  reasoningMarkdown
-                    ? html`<div class="chat-thinking">
+                ${reasoningMarkdown
+                  ? html`<div class="chat-thinking">
                       ${unsafeHTML(toSanitizedMarkdownHtml(reasoningMarkdown))}
                     </div>`
-                    : nothing
-                }
-                ${
-                  jsonResult
-                    ? html`<details class="chat-json-collapse">
+                  : nothing}
+                ${jsonResult
+                  ? html`<details class="chat-json-collapse">
                       <summary class="chat-json-summary">
                         <span class="chat-json-badge">JSON</span>
                         <span class="chat-json-label">${jsonSummaryLabel(jsonResult.parsed)}</span>
                       </summary>
                       <pre class="chat-json-content"><code>${jsonResult.pretty}</code></pre>
                     </details>`
-                    : markdown
-                      ? html`<div class="chat-text" dir="${detectTextDirection(markdown)}">
+                  : markdown
+                    ? html`<div class="chat-text" dir="${detectTextDirection(markdown)}">
                         ${unsafeHTML(toSanitizedMarkdownHtml(markdown))}
                       </div>`
-                      : nothing
-                }
+                    : nothing}
                 ${hasToolCards ? renderCollapsedToolCards(toolCards, onOpenSidebar) : nothing}
                 ${hasToolCards ? renderInlineMedia(toolCards) : nothing}
               </div>
             </details>
           `
-          : html`
+        : html`
             ${renderMessageImages(images)}
-            ${
-              reasoningMarkdown
-                ? html`<div class="chat-thinking">
+            ${reasoningMarkdown
+              ? html`<div class="chat-thinking">
                   ${unsafeHTML(toSanitizedMarkdownHtml(reasoningMarkdown))}
                 </div>`
-                : nothing
-            }
-            ${
-              jsonResult
-                ? html`<details class="chat-json-collapse">
+              : nothing}
+            ${jsonResult
+              ? html`<details class="chat-json-collapse">
                   <summary class="chat-json-summary">
                     <span class="chat-json-badge">JSON</span>
                     <span class="chat-json-label">${jsonSummaryLabel(jsonResult.parsed)}</span>
                   </summary>
                   <pre class="chat-json-content"><code>${jsonResult.pretty}</code></pre>
                 </details>`
-                : markdown
-                  ? html`<div class="chat-text" dir="${detectTextDirection(markdown)}">
+              : markdown
+                ? html`<div class="chat-text" dir="${detectTextDirection(markdown)}">
                     ${unsafeHTML(toSanitizedMarkdownHtml(markdown))}
                   </div>`
-                  : nothing
-            }
+                : nothing}
             ${hasToolCards ? renderCollapsedToolCards(toolCards, onOpenSidebar) : nothing}
             ${hasToolCards ? renderInlineMedia(toolCards) : nothing}
-          `
-      }
+          `}
     </div>
   `;
 }

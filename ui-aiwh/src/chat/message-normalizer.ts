@@ -10,6 +10,18 @@ import {
 } from "../core-deps/chat/tool-content.js";
 import type { NormalizedMessage, MessageContentItem } from "../ui-deps/types/chat-types.ts";
 
+/** Parse a timestamp value (number epoch ms, or ISO string) into epoch ms. */
+function resolveTimestamp(value: unknown): number | null {
+  if (typeof value === "number" && value > 0) {
+    return value;
+  }
+  if (typeof value === "string" && value.trim()) {
+    const parsed = new Date(value.endsWith("Z") ? value : value + "Z").getTime();
+    return Number.isNaN(parsed) ? null : parsed;
+  }
+  return null;
+}
+
 /**
  * Normalize a raw message object into a consistent structure.
  */
@@ -52,7 +64,12 @@ export function normalizeMessage(message: unknown): NormalizedMessage {
     content = [{ type: "text", text: m.text }];
   }
 
-  const timestamp = typeof m.timestamp === "number" ? m.timestamp : Date.now();
+  // Resolve timestamp from various formats: numeric epoch, ISO string, or fallback to now
+  const timestamp =
+    resolveTimestamp(m.timestamp) ??
+    resolveTimestamp(m.created_at) ??
+    resolveTimestamp(m.createdAt) ??
+    Date.now();
   const id = typeof m.id === "string" ? m.id : undefined;
   const senderLabel =
     typeof m.senderLabel === "string" && m.senderLabel.trim() ? m.senderLabel.trim() : null;
