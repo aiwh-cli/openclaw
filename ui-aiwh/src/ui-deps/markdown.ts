@@ -16,7 +16,9 @@ const markdownCache = new Map<string, string>();
 
 function getCached(key: string): string | null {
   const v = markdownCache.get(key);
-  if (v === undefined) {return null;}
+  if (v === undefined) {
+    return null;
+  }
   markdownCache.delete(key);
   markdownCache.set(key, v);
   return v;
@@ -26,26 +28,64 @@ function setCache(key: string, value: string) {
   markdownCache.set(key, value);
   if (markdownCache.size > MARKDOWN_CACHE_LIMIT) {
     const oldest = markdownCache.keys().next().value;
-    if (oldest) {markdownCache.delete(oldest);}
+    if (oldest) {
+      markdownCache.delete(oldest);
+    }
   }
 }
 
 function esc(s: string): string {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+const SAFE_HREF_PROTOCOLS = new Set(["http:", "https:", "mailto:"]);
+
+function isSafeHref(href: string): boolean {
+  // Decode HTML entities that esc() may have introduced (e.g. &#58; for :)
+  const decoded = href
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)))
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, h) => String.fromCharCode(parseInt(h, 16)));
+  const trimmed = decoded.trim();
+  // Relative URLs and fragment-only are safe
+  if (trimmed.startsWith("/") || trimmed.startsWith("#") || trimmed.startsWith("?")) {
+    return true;
+  }
+  // Check protocol
+  const colonIdx = trimmed.indexOf(":");
+  if (colonIdx < 0) {
+    return true;
+  } // no protocol = relative
+  const protocol = trimmed.slice(0, colonIdx + 1).toLowerCase();
+  return SAFE_HREF_PROTOCOLS.has(protocol);
 }
 
 /** Parse markdown to sanitized HTML */
 export function toSanitizedMarkdownHtml(markdown: string): string {
   const input = markdown.trim();
-  if (!input) {return "";}
+  if (!input) {
+    return "";
+  }
   if (input.length <= MARKDOWN_CACHE_MAX_CHARS) {
     const cached = getCached(input);
-    if (cached !== null) {return cached;}
+    if (cached !== null) {
+      return cached;
+    }
   }
   const { text } = truncateText(input, MARKDOWN_CHAR_LIMIT);
   const result = renderMarkdown(text);
-  if (input.length <= MARKDOWN_CACHE_MAX_CHARS) {setCache(input, result);}
+  if (input.length <= MARKDOWN_CACHE_MAX_CHARS) {
+    setCache(input, result);
+  }
   return result;
 }
 
@@ -90,16 +130,20 @@ function renderCodeBlock(code: string, lang: string): string {
   const escaped = esc(code);
   const langClass = lang ? ` class="language-${esc(lang)}"` : "";
   const langLabel = lang ? `<span class="code-block-lang">${esc(lang)}</span>` : "";
-  const attrSafe = code.replace(/&/g, "&amp;").replace(/"/g, "&quot;")
-    .replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const attrSafe = code
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
   const copyBtn = `<button type="button" class="code-block-copy" data-code="${attrSafe}" aria-label="Copy code"><span class="code-block-copy__idle">Copy</span><span class="code-block-copy__done">Copied!</span></button>`;
   const header = `<div class="code-block-header">${langLabel}${copyBtn}</div>`;
 
   const trimmed = code.trim();
-  const isJson = lang === "json" || (!lang && (
-    (trimmed.startsWith("{") && trimmed.endsWith("}")) ||
-    (trimmed.startsWith("[") && trimmed.endsWith("]"))
-  ));
+  const isJson =
+    lang === "json" ||
+    (!lang &&
+      ((trimmed.startsWith("{") && trimmed.endsWith("}")) ||
+        (trimmed.startsWith("[") && trimmed.endsWith("]"))));
   if (isJson) {
     const lines = code.split("\n").length;
     const label = lines > 1 ? `JSON &middot; ${lines} lines` : "JSON";
@@ -127,8 +171,13 @@ function renderInlineMarkdown(text: string): string {
         tableRows = [];
       }
       // Skip separator rows (|---|---|)
-      if (/^\|[\s\-:|]+\|$/.test(trimmed)) {continue;}
-      const cells = trimmed.slice(1, -1).split("|").map(c => c.trim());
+      if (/^\|[\s\-:|]+\|$/.test(trimmed)) {
+        continue;
+      }
+      const cells = trimmed
+        .slice(1, -1)
+        .split("|")
+        .map((c) => c.trim());
       tableRows.push(cells);
       continue;
     } else if (inTable) {
@@ -153,7 +202,11 @@ function renderInlineMarkdown(text: string): string {
 
     // Unordered list
     if (/^[-*+]\s+/.test(trimmed)) {
-      if (inList !== "ul") { closeList(); inList = "ul"; out.push("<ul>"); }
+      if (inList !== "ul") {
+        closeList();
+        inList = "ul";
+        out.push("<ul>");
+      }
       out.push(`<li>${inlineFormat(trimmed.replace(/^[-*+]\s+/, ""))}</li>`);
       continue;
     }
@@ -161,7 +214,11 @@ function renderInlineMarkdown(text: string): string {
     // Ordered list
     const olMatch = trimmed.match(/^(\d+)[.)]\s+(.+)/);
     if (olMatch) {
-      if (inList !== "ol") { closeList(); inList = "ol"; out.push("<ol>"); }
+      if (inList !== "ol") {
+        closeList();
+        inList = "ol";
+        out.push("<ol>");
+      }
       out.push(`<li>${inlineFormat(olMatch[2])}</li>`);
       continue;
     }
@@ -186,29 +243,41 @@ function renderInlineMarkdown(text: string): string {
   }
 
   closeList();
-  if (inTable) {flushTable();}
+  if (inTable) {
+    flushTable();
+  }
   return out.join("\n");
 
   function closeList() {
-    if (inList) { out.push(inList === "ul" ? "</ul>" : "</ol>"); inList = null; }
+    if (inList) {
+      out.push(inList === "ul" ? "</ul>" : "</ol>");
+      inList = null;
+    }
   }
 
   function flushTable() {
-    if (!tableRows.length) { inTable = false; return; }
-    let html = '<table><thead><tr>';
-    const header = tableRows[0];
-    for (const cell of header) {html += `<th>${inlineFormat(cell)}</th>`;}
-    html += '</tr></thead>';
-    if (tableRows.length > 1) {
-      html += '<tbody>';
-      for (let r = 1; r < tableRows.length; r++) {
-        html += '<tr>';
-        for (const cell of tableRows[r]) {html += `<td>${inlineFormat(cell)}</td>`;}
-        html += '</tr>';
-      }
-      html += '</tbody>';
+    if (!tableRows.length) {
+      inTable = false;
+      return;
     }
-    html += '</table>';
+    let html = "<table><thead><tr>";
+    const header = tableRows[0];
+    for (const cell of header) {
+      html += `<th>${inlineFormat(cell)}</th>`;
+    }
+    html += "</tr></thead>";
+    if (tableRows.length > 1) {
+      html += "<tbody>";
+      for (let r = 1; r < tableRows.length; r++) {
+        html += "<tr>";
+        for (const cell of tableRows[r]) {
+          html += `<td>${inlineFormat(cell)}</td>`;
+        }
+        html += "</tr>";
+      }
+      html += "</tbody>";
+    }
+    html += "</table>";
     out.push(html);
     inTable = false;
     tableRows = [];
@@ -218,18 +287,25 @@ function renderInlineMarkdown(text: string): string {
 function inlineFormat(text: string): string {
   let s = esc(text);
   // Inline code
-  s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
+  s = s.replace(/`([^`]+)`/g, "<code>$1</code>");
   // Bold
-  s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-  s = s.replace(/__([^_]+)__/g, '<strong>$1</strong>');
+  s = s.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+  s = s.replace(/__([^_]+)__/g, "<strong>$1</strong>");
   // Italic
-  s = s.replace(/\*([^*]+)\*/g, '<em>$1</em>');
-  s = s.replace(/_([^_]+)_/g, '<em>$1</em>');
+  s = s.replace(/\*([^*]+)\*/g, "<em>$1</em>");
+  s = s.replace(/_([^_]+)_/g, "<em>$1</em>");
   // Strikethrough
-  s = s.replace(/~~([^~]+)~~/g, '<del>$1</del>');
-  // Links [text](url)
-  s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" rel="noreferrer noopener" target="_blank">$1</a>');
+  s = s.replace(/~~([^~]+)~~/g, "<del>$1</del>");
+  // Links [text](url) — validate protocol to prevent javascript: XSS
+  s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_match, linkText, href) => {
+    return isSafeHref(href)
+      ? `<a href="${href}" rel="noreferrer noopener" target="_blank">${linkText}</a>`
+      : linkText;
+  });
   // Auto-link URLs
-  s = s.replace(/(^|[^"=])(https?:\/\/[^\s<]+[^\s<.,:;"')\]])/g, '$1<a href="$2" rel="noreferrer noopener" target="_blank">$2</a>');
+  s = s.replace(
+    /(^|[^"=])(https?:\/\/[^\s<]+[^\s<.,:;"')\]])/g,
+    '$1<a href="$2" rel="noreferrer noopener" target="_blank">$2</a>',
+  );
   return s;
 }
