@@ -216,21 +216,21 @@ document.addEventListener('DOMContentLoaded', () => {
 // ─── Navigation ──────────────────────────────────────────────
 
 const VIEW_INIT = {
-  overview: initOverview,
+  overview: () => { const el = document.querySelector('overview-view'); if (el) {el.load();} },
   team:     () => { /* <team-org-chart> Lit component self-initializes via connectedCallback */ },
   tasks:    initTasks,
   schedule: initSchedule,
   social:   () => { /* social-hub manages its own loading */ },
-  costs:    initCosts,
+  costs:    () => { const el = document.querySelector('costs-view'); if (el) {el.load();} },
   chat:     () => { /* Lit sidebar + chat-host self-initialize via connectedCallback */ },
   wealth:   initWealth,
   logs:     () => { /* <aiwh-logs> Lit component self-initializes via connectedCallback */ },
-  debug:    initDebug,
-  trash:    initTrash,
+  debug:    () => { const el = document.querySelector('debug-view'); if (el) {el.load();} },
+  trash:    () => { const el = document.querySelector('trash-view'); if (el) {el.load();} },
   channels: () => { /* <channel-panel> Lit component self-initializes via connectedCallback */ },
   security: () => { const el = document.querySelector('security-panel'); if (el) {el.load();} },
-  config:   initConfig,
-  knowledge: loadKnowledge,
+  config:   () => { if (typeof initConfig === 'function') {initConfig();} },
+  knowledge: () => { if (typeof loadKnowledge === 'function') {loadKnowledge();} },
 };
 
 function switchView(view) {

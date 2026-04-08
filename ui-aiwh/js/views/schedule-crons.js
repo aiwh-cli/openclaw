@@ -98,6 +98,7 @@ const CARD_H = 22;   // card height (1-liner)
 const CARD_GAP = 2;  // gap between stacked cards
 
 let _schedCache = { openclaw: [], local: [], scripts: [] };
+window._schedCache = _schedCache; // Expose for Lit modules (schedule-templates.ts, schedule-script-cron.ts)
 let _schedTab = 'calendar';
 
 async function initSchedule() {
@@ -111,6 +112,7 @@ async function loadSchedule() {
     local: sched?.local || [],
     scripts: (sched?.scripts || []).map(_normalizeScriptJob),
   };
+  window._schedCache = _schedCache; // Keep window ref in sync
   renderSchedView();
 }
 

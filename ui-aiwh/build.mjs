@@ -24,22 +24,22 @@ const JS_MAP = {
   'app.js':                     'app.js',
   'canvas-bg.js':               'canvas-bg.js',
   'sidebar.js':                 'components/sidebar.js',
-  'views/overview.js':          'views/overview.js',
+  // 'views/overview.js' — removed, migrated to <overview-view> Lit component
   // 'views/team.js' — removed, migrated to <team-org-chart> Lit component
-  'views/team-detail.js':       'views/team-detail.js',
+  // 'views/team-detail.js' — removed, migrated to team-detail-view.ts + team-file-editor.ts in Lit bundle
   'views/tasks.js':             'views/tasks.js',
   'views/schedule-crons.js':    'views/schedule-crons.js',
-  'views/schedule-scripts.js':  'views/schedule-scripts.js',
-  'views/schedule-templates.js':'views/schedule-templates.js',
-  'views/knowledge.js':         'views/knowledge.js',
-  'views/costs.js':             'views/costs.js',
+  // 'views/schedule-scripts.js' — removed, migrated to schedule-script-cron.ts in Lit bundle
+  // 'views/schedule-templates.js' — removed, migrated to schedule-templates.ts in Lit bundle
+  // 'views/knowledge.js' — removed, migrated to knowledge-view.ts + knowledge-entries.ts in Lit bundle
+  // 'views/costs.js' — removed, migrated to <costs-view> Lit component
   // 'views/logs.js' — removed, migrated to <aiwh-logs> Lit component
-  'views/debug.js':             'views/debug.js',
-  'views/trash.js':             'views/trash.js',
+  // 'views/debug.js' — removed, migrated to <debug-view> Lit component
+  // 'views/trash.js' — removed, migrated to <trash-view> Lit component
   // 'views/channels.js' — removed, migrated to <channel-panel> Lit component
-  'views/channels-setup.js':    'views/channels-setup.js',
-  'views/channels-config.js':   'views/channels-config.js',
-  'views/config.js':            'views/config.js',
+  // 'views/channels-setup.js' — removed, migrated to channels-setup-view.ts in Lit bundle
+  // 'views/channels-config.js' — removed, migrated to channels-config-view.ts in Lit bundle
+  // 'views/config.js' — removed, migrated to config-view.ts + config-providers.ts in Lit bundle
   // chat-*.js files removed — migrated to <aiwh-chat-host> + <aiwh-chat-sidebar> Lit components (Phase 1)
   // 'views/notifications.js' — removed, migrated to <notif-dropdown> Lit component
   // security.js uses top-level await (ES module) — it's a Lit component loaded dynamically,

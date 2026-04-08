@@ -9,6 +9,21 @@ export { AiwhLogs } from "./components/aiwh-logs.js";
 export { KnowledgeUpload } from "./components/knowledge-upload.js";
 export { DreamsDiary } from "./components/dreams-diary.js";
 export { SecurityPanel } from "./components/security-panel.js";
+export { TrashView } from "./components/trash-view.js";
+export { DebugView } from "./components/debug-view.js";
+export { OverviewView } from "./components/overview-view.js";
+export { CostsView } from "./components/costs-view.js";
+import "./components/schedule-script-cron.js"; // side-effect: exposes window globals for schedule-crons.js
+import "./components/schedule-templates.js"; // side-effect: exposes window globals for schedule-crons.js
+import "./components/channels-config-view.js"; // side-effect: exposes openChannelSettings, saveChannelSettings, addChip
+import "./components/channels-setup-view.js"; // side-effect: exposes showChannelPicker, setup wizards
+import "./components/team-file-editor.js"; // side-effect: exposes openFileEditor, saveFileEditor
+import "./components/team-detail-view.js"; // side-effect: exposes openAgentDetail, closeAgentDetail, etc.
+import "./components/knowledge-view.js"; // side-effect: exposes loadKnowledge + entry management
+import "./components/config-view.js"; // side-effect: exposes initConfig, saveBudget, etc.
+import "./components/config-providers.js"; // side-effect: exposes renderAIProviders, key modals, Codex OAuth
+export { SecurityAuditTab } from "./components/security-audit-tab.js";
+export { SecurityTrashTab } from "./components/security-trash-tab.js";
 export { NotifDropdown } from "./components/notif-dropdown.js";
 export { ExecApprovalsPanel } from "./components/exec-approvals-panel.js";
 export { TeamAccessPanel } from "./components/team-access-panel.js";

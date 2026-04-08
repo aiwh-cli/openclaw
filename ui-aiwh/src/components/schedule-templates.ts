@@ -1,29 +1,37 @@
-// ─── Schedule Templates: Pre-built cron catalogue ─────────────
-// Phase 48.14 — Template picker shown before manual cron creation.
-// Selecting a template pre-fills the add cron form.
-// Depends on: schedule-crons.js (showAddCron, showAddScriptCron globals)
+// Schedule Templates — pre-built cron catalogue modal.
+// Called by schedule-crons.js (vanilla JS, Phase 4). Exposed on window.
 
-const _TPL_MODULE_META = {
+const api = (window as any).api as (url: string, opts?: any) => Promise<any>;
+const showToast = (window as any).showToast as (msg: string, type?: string) => void;
+const showModal = (window as any).showModal as (html: string, cls?: string) => void;
+const closeModal = (window as any).closeModal as () => void;
+const escHtml = (window as any).escHtml as (s: string) => string;
+
+function cpPickerHTML(state: any): string { return (window as any)._cpPickerHTML(state); }
+function cpParseCron(expr: string): any { return (window as any)._cpParseCron(expr); }
+function schedCache(): any { return (window as any)._schedCache || { openclaw: [], local: [], scripts: [] }; }
+
+const _TPL_MODULE_META: Record<string, { label: string; icon: string; color: string }> = {
   system:    { label: 'System',    icon: '⚙️', color: 'var(--cyan, #00e5ff)' },
   frontend:  { label: 'Frontend',  icon: '🎬', color: 'var(--magenta, #ff00e5)' },
   backend:   { label: 'Backend',   icon: '📊', color: 'var(--accent, #C9A84C)' },
   lifestyle: { label: 'Lifestyle', icon: '🏃', color: 'var(--green, #00ff88)' },
 };
 
-let _templateCache = null;
+let _templateCache: any = null;
 
-async function loadTemplates() {
-  if (_templateCache) {return _templateCache;}
+async function loadTemplates(): Promise<any> {
+  if (_templateCache) { return _templateCache; }
   const data = await api('/cron/templates');
   _templateCache = data;
   return data;
 }
 
-function _scheduleToHuman(expr) {
-  if (!expr) {return '';}
+function _scheduleToHuman(expr: string): string {
+  if (!expr) { return ''; }
   const parts = expr.split(' ');
-  if (parts.length < 5) {return expr;}
-  const [min, hr, dom, mon, dow] = parts;
+  if (parts.length < 5) { return expr; }
+  const [min, hr, dom, , dow] = parts;
 
   let time = '';
   if (hr !== '*' && min !== '*') {
@@ -35,61 +43,59 @@ function _scheduleToHuman(expr) {
   }
 
   let days = '';
-  if (dow === '*' && dom === '*') {days = 'daily';}
-  else if (dow === '1-5') {days = 'weekdays';}
-  else if (dow === '0') {days = 'Sundays';}
-  else if (dow === '1') {days = 'Mondays';}
-  else if (dow === '0,6') {days = 'weekends';}
-  else if (dom !== '*') {days = `day ${dom}`;}
-  else {days = `dow ${dow}`;}
+  if (dow === '*' && dom === '*') { days = 'daily'; }
+  else if (dow === '1-5') { days = 'weekdays'; }
+  else if (dow === '0') { days = 'Sundays'; }
+  else if (dow === '1') { days = 'Mondays'; }
+  else if (dow === '0,6') { days = 'weekends'; }
+  else if (dom !== '*') { days = `day ${dom}`; }
+  else { days = `dow ${dow}`; }
 
-  if (hr === '*' && min.includes('/')) {return time;}
+  if (hr === '*' && min.includes('/')) { return time; }
   return `${time}, ${days}`;
 }
 
-function _isTemplateActive(tpl) {
-  const all = [..._schedCache.openclaw, ..._schedCache.scripts];
+function _isTemplateActive(tpl: any): boolean {
+  const cache = schedCache();
+  const all = [...cache.openclaw, ...cache.scripts];
   const tId = (tpl.id || '').toLowerCase();
   const tIdFlat = tId.replace(/-/g, '');
   const tName = (tpl.name || '').toLowerCase();
-  // Extract the core concept (e.g. "video-copywriter" from "video-copywriter-morning")
   const tIdParts = tId.split('-');
   const tAgent = (tpl.agent || '').toLowerCase();
-  return all.some(j => {
+  return all.some((j: any) => {
     const jName = (j.name || '').toLowerCase();
     const jNameFlat = jName.replace(/-/g, '').replace(/\./g, '');
     const jDesc = (j.description || '').toLowerCase();
     const jAgent = (j.agentId || '').toLowerCase();
-    // Direct name match
-    if (jName.includes(tId) || jNameFlat.includes(tIdFlat)) {return true;}
-    if (jName.includes(tName) || jDesc.includes(tName)) {return true;}
-    // Same agent + similar schedule concept (e.g. both are "copywriter" crons)
+    if (jName.includes(tId) || jNameFlat.includes(tIdFlat)) { return true; }
+    if (jName.includes(tName) || jDesc.includes(tName)) { return true; }
     if (tAgent && jAgent === tAgent && tIdParts.length >= 2) {
-      const concept = tIdParts.slice(0, 2).join('-'); // "video-copywriter"
-      if (jName.includes(concept) || jNameFlat.includes(concept.replace(/-/g, ''))) {return true;}
+      const concept = tIdParts.slice(0, 2).join('-');
+      if (jName.includes(concept) || jNameFlat.includes(concept.replace(/-/g, ''))) { return true; }
     }
     return false;
   });
 }
 
-async function showTemplatePicker() {
-  let data;
+export async function showTemplatePicker() {
+  let data: any;
   try {
     data = await loadTemplates();
   } catch (e) {
     console.error('[templates] Failed to load:', e);
-    showAddCron();
+    (window as any).showAddCron();
     return;
   }
   if (!data?.templates?.length) {
-    showAddCron();
+    (window as any).showAddCron();
     return;
   }
 
-  const grouped = {};
+  const grouped: Record<string, any[]> = {};
   for (const tpl of data.templates) {
     const mod = tpl.module || 'system';
-    if (!grouped[mod]) {grouped[mod] = [];}
+    if (!grouped[mod]) { grouped[mod] = []; }
     grouped[mod].push(tpl);
   }
 
@@ -103,7 +109,7 @@ async function showTemplatePicker() {
   const moduleOrder = ['frontend', 'backend', 'system', 'lifestyle'];
   for (const mod of moduleOrder) {
     const templates = grouped[mod];
-    if (!templates?.length) {continue;}
+    if (!templates?.length) { continue; }
     const meta = _TPL_MODULE_META[mod] || { label: mod, icon: '📦', color: '#888' };
 
     html += `
@@ -156,26 +162,23 @@ async function showTemplatePicker() {
   showModal(html, 'modal-md');
 }
 
-async function selectTemplate(tplId) {
+export async function selectTemplate(tplId: string) {
   const data = await loadTemplates();
-  const tpl = data?.templates?.find(t => t.id === tplId);
-  if (!tpl) {return showToast('Template not found', 'error');}
+  const tpl = data?.templates?.find((t: any) => t.id === tplId);
+  if (!tpl) { return showToast('Template not found', 'error'); }
 
   if (tpl.is_script) {
     selectScriptTemplate(tpl);
     return;
   }
 
-  // Open the regular addCron form, pre-filled with template data
-  const state = { freq: 'once', times: ['09:00'], days: [0,1,2,3,4,5,6] };
-
-  // Parse schedule into picker state
+  const state = { freq: 'once' as string, times: ['09:00'], days: [0,1,2,3,4,5,6] };
   const parts = (tpl.schedule || '').split(' ');
   if (parts.length >= 5) {
     const [min, hr, , , dow] = parts;
     if (hr !== '*' && min !== '*') {
-      const times = hr.split(',').flatMap(h =>
-        min.split(',').map(m => `${h.padStart(2, '0')}:${m.padStart(2, '0')}`)
+      const times = hr.split(',').flatMap((h: string) =>
+        min.split(',').map((m: string) => `${h.padStart(2, '0')}:${m.padStart(2, '0')}`)
       );
       state.times = times;
     }
@@ -187,17 +190,17 @@ async function selectTemplate(tplId) {
       state.days = [0,1,2,3,4];
     } else {
       state.freq = 'custom';
-      state.days = dow.split(',').map(d => (parseInt(d) + 6) % 7);
+      state.days = dow.split(',').map((d: string) => (parseInt(d) + 6) % 7);
     }
   }
 
   const agentsData = await api('/agents');
-  const agents = (agentsData?.agents || []).filter(a => a.inConfig).toSorted((a, b) => {
-    if (a.id === 'main') {return -1;}
-    if (b.id === 'main') {return 1;}
+  const agents = (agentsData?.agents || []).filter((a: any) => a.inConfig).toSorted((a: any, b: any) => {
+    if (a.id === 'main') { return -1; }
+    if (b.id === 'main') { return 1; }
     return a.id.localeCompare(b.id);
   });
-  const agentOptions = agents.map(a =>
+  const agentOptions = agents.map((a: any) =>
     `<option value="${escHtml(a.id)}" ${a.id === (tpl.agent || 'main') ? 'selected' : ''}>${escHtml(a.displayName || a.id)}</option>`
   ).join('');
 
@@ -218,7 +221,7 @@ async function selectTemplate(tplId) {
         <label class="cp-label">Agent</label>
         <select id="cron-add-agent" class="cp-input">${agentOptions}</select>
       </div>
-      ${_cpPickerHTML(state)}
+      ${cpPickerHTML(state)}
       <div class="cp-field">
         <label class="cp-label">Timezone</label>
         <input id="cron-add-tz" class="cp-input" value="${escHtml(tz)}">
@@ -258,13 +261,12 @@ async function selectTemplate(tplId) {
   showModal(html, 'modal-md');
 }
 
-async function selectScriptTemplate(tpl) {
+async function selectScriptTemplate(tpl: any) {
   const data = await loadTemplates();
   const tz = data?.clientTimezone || 'Australia/Brisbane';
 
-  // Parse template schedule into picker state
-  const state = typeof _cpParseCron === 'function'
-    ? _cpParseCron(tpl.schedule || '0 9 * * *')
+  const state = typeof (window as any)._cpParseCron === 'function'
+    ? cpParseCron(tpl.schedule || '0 9 * * *')
     : { freq: 'daily', times: ['09:00'], days: [0,1,2,3,4,5,6] };
 
   const html = `
@@ -283,7 +285,7 @@ async function selectScriptTemplate(tpl) {
         <label class="cp-label">Script path</label>
         <input id="sc-add-path" class="cp-input" value="${escHtml(tpl.script_path || '')}">
       </div>
-      ${_cpPickerHTML(state)}
+      ${cpPickerHTML(state)}
       <div class="cp-field">
         <label class="cp-label">Timezone</label>
         <input id="sc-add-tz" class="cp-input" value="${escHtml(tz)}">
@@ -300,3 +302,9 @@ async function selectScriptTemplate(tpl) {
   `;
   showModal(html, 'modal-md');
 }
+
+// Expose on window for schedule-crons.js (vanilla JS) to call
+(window as any).showTemplatePicker = showTemplatePicker;
+(window as any).selectTemplate = selectTemplate;
+(window as any).selectScriptTemplate = selectScriptTemplate;
+(window as any).loadTemplates = loadTemplates;
