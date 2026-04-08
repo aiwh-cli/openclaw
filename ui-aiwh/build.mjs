@@ -25,7 +25,7 @@ const JS_MAP = {
   'canvas-bg.js':               'canvas-bg.js',
   'sidebar.js':                 'components/sidebar.js',
   'views/overview.js':          'views/overview.js',
-  'views/team.js':              'views/team.js',
+  // 'views/team.js' — removed, migrated to <team-org-chart> Lit component
   'views/team-detail.js':       'views/team-detail.js',
   'views/tasks.js':             'views/tasks.js',
   'views/schedule-crons.js':    'views/schedule-crons.js',
@@ -33,21 +33,15 @@ const JS_MAP = {
   'views/schedule-templates.js':'views/schedule-templates.js',
   'views/knowledge.js':         'views/knowledge.js',
   'views/costs.js':             'views/costs.js',
-  'views/logs.js':              'views/logs.js',
+  // 'views/logs.js' — removed, migrated to <aiwh-logs> Lit component
   'views/debug.js':             'views/debug.js',
   'views/trash.js':             'views/trash.js',
-  'views/channels.js':          'views/channels.js',
+  // 'views/channels.js' — removed, migrated to <channel-panel> Lit component
   'views/channels-setup.js':    'views/channels-setup.js',
   'views/channels-config.js':   'views/channels-config.js',
   'views/config.js':            'views/config.js',
-  'views/chat-agents.js':       'views/chat-agents.js',
-  'views/chat-commands.js':     'views/chat-commands.js',
-  'views/chat-images.js':       'views/chat-images.js',
-  'views/chat-voice.js':        'views/chat-voice.js',
-  'views/chat-media-render.js': 'views/chat-media-render.js',
-  'views/chat-core.js':         'views/chat-core.js',
-  'views/chat-render.js':       'views/chat-render.js',
-  'views/notifications.js':     'views/notifications.js',
+  // chat-*.js files removed — migrated to <aiwh-chat-host> + <aiwh-chat-sidebar> Lit components (Phase 1)
+  // 'views/notifications.js' — removed, migrated to <notif-dropdown> Lit component
   // security.js uses top-level await (ES module) — it's a Lit component loaded dynamically,
   // already compiled into lit/components.js. Not loaded via <script> tag. Skip minification.
 };

@@ -217,17 +217,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
 const VIEW_INIT = {
   overview: initOverview,
-  team:     initTeam,
+  team:     () => { /* <team-org-chart> Lit component self-initializes via connectedCallback */ },
   tasks:    initTasks,
   schedule: initSchedule,
   social:   () => { /* social-hub manages its own loading */ },
   costs:    initCosts,
-  chat:     initChat,
+  chat:     () => { /* Lit sidebar + chat-host self-initialize via connectedCallback */ },
   wealth:   initWealth,
-  logs:     initLogs,
+  logs:     () => { /* <aiwh-logs> Lit component self-initializes via connectedCallback */ },
   debug:    initDebug,
   trash:    initTrash,
-  channels: initChannels,
+  channels: () => { /* <channel-panel> Lit component self-initializes via connectedCallback */ },
   security: () => { const el = document.querySelector('security-panel'); if (el) {el.load();} },
   config:   initConfig,
   knowledge: loadKnowledge,
@@ -286,7 +286,15 @@ function toggleNotifications() {
     }
   }
   openRightPanel('notifications');
-  if (typeof loadNotifications === 'function') {loadNotifications();}
+  const notifEl = document.querySelector('notif-dropdown');
+  if (notifEl) {notifEl.load();}
+}
+
+function updateNotifBadge(count) {
+  const badge = document.getElementById('notif-badge');
+  if (!badge) {return;}
+  badge.textContent = count > 9 ? '9+' : count;
+  badge.classList.toggle('hidden', count === 0);
 }
 
 // ─── Toast Notifications ─────────────────────────────────────
@@ -488,8 +496,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // Sidebar — data-driven hex rail
   if (typeof initSidebar === 'function') {initSidebar();}
 
-  // Log streaming
-  if (typeof setupLogSocket === 'function') {setupLogSocket(socket);}
+  // Log streaming — handled by <aiwh-logs> Lit component (creates own socket)
+  // if (typeof setupLogSocket === 'function') {setupLogSocket(socket);}
 
   // Top bar clock — update every second
   updateTopBarClock();

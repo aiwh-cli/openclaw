@@ -414,7 +414,7 @@ async function handleAvatarUpload(agentId, input) {
         if (imgEl) { imgEl.src = result.avatar_url; }
         else { wrap.insertAdjacentHTML('afterbegin', `<img src="${result.avatar_url}" alt="" class="detail-avatar-img">`); }
       }
-      loadTeam();
+      const orgEl = document.querySelector('team-org-chart'); if (orgEl) {orgEl.load();}
     } else {
       showToast(result?.error || 'Upload failed', 'error');
     }
