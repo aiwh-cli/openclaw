@@ -1,0 +1,148 @@
+{
+  "packs": {
+    "coaching": {
+      "label": "Business Coaching",
+      "domain_files": ["coaching-industry.md"],
+      "suggested_pillars": [
+        {
+          "id": "client-results",
+          "name": "Client Results",
+          "description": "Showcase transformations, case studies, and measurable outcomes from your coaching programs.",
+          "hashtags": ["#ClientResults", "#Transformation", "#CoachingWins", "#CaseStudy", "#ProofOfWork"]
+        },
+        {
+          "id": "methodology",
+          "name": "Your Methodology",
+          "description": "Break down your signature system — the frameworks, processes, and thinking behind how you get results.",
+          "hashtags": ["#CoachingMethod", "#Framework", "#SignatureSystem", "#ExpertInsight", "#ProcessDriven"]
+        },
+        {
+          "id": "industry-trends",
+          "name": "Industry Trends",
+          "description": "Commentary on what's changing in coaching, what's working now, and what most coaches get wrong.",
+          "hashtags": ["#CoachingIndustry", "#Trends", "#ThoughtLeadership", "#MarketInsight", "#ExpertOpinion"]
+        },
+        {
+          "id": "behind-the-scenes",
+          "name": "Behind the Scenes",
+          "description": "Show the real day-to-day of running a coaching business — the wins, lessons, and honest moments.",
+          "hashtags": ["#BehindTheScenes", "#CoachLife", "#BuildInPublic", "#RealTalk", "#Entrepreneurship"]
+        },
+        {
+          "id": "client-acquisition",
+          "name": "Client Acquisition",
+          "description": "Teach your audience how to attract and convert high-quality clients without feeling salesy.",
+          "hashtags": ["#ClientAcquisition", "#LeadGeneration", "#SalesStrategy", "#HighTicket", "#CoachMarketing"]
+        }
+      ]
+    },
+    "fitness": {
+      "label": "Fitness & Health Coaching",
+      "domain_files": ["fitness-industry.md"],
+      "suggested_pillars": [
+        {
+          "id": "training-science",
+          "name": "Training Science",
+          "description": "Evidence-based training principles — progressive overload, periodisation, recovery, and programming logic.",
+          "hashtags": ["#TrainingScience", "#EvidenceBased", "#StrengthTraining", "#ExerciseScience", "#FitnessTips"]
+        },
+        {
+          "id": "nutrition-guidance",
+          "name": "Nutrition Guidance",
+          "description": "Practical nutrition advice — meal planning, macros, supplementation, and debunking diet myths.",
+          "hashtags": ["#NutritionTips", "#MealPrep", "#Macros", "#HealthyEating", "#FitnessNutrition"]
+        },
+        {
+          "id": "client-transformations",
+          "name": "Client Transformations",
+          "description": "Before/after journeys, testimonials, and the real process behind lasting body and lifestyle changes.",
+          "hashtags": ["#Transformation", "#BeforeAndAfter", "#ClientResults", "#FitnessJourney", "#RealResults"]
+        },
+        {
+          "id": "mindset-habits",
+          "name": "Mindset & Habits",
+          "description": "The mental game — consistency, motivation, overcoming plateaus, and building sustainable fitness habits.",
+          "hashtags": ["#FitnessMindset", "#Consistency", "#Habits", "#Motivation", "#MentalStrength"]
+        },
+        {
+          "id": "program-design",
+          "name": "Program Design",
+          "description": "How you build training and nutrition programs — your methodology, client onboarding, and coaching process.",
+          "hashtags": ["#ProgramDesign", "#CoachingProcess", "#PersonalTraining", "#FitnessCoach", "#CustomPrograms"]
+        }
+      ]
+    },
+    "real-estate": {
+      "label": "Real Estate",
+      "domain_files": ["real-estate-industry.md"],
+      "suggested_pillars": [
+        {
+          "id": "market-analysis",
+          "name": "Market Analysis",
+          "description": "Local market insights — price trends, inventory levels, neighbourhood spotlights, and investment opportunities.",
+          "hashtags": ["#MarketUpdate", "#RealEstateMarket", "#PropertyTrends", "#MarketAnalysis", "#LocalExpert"]
+        },
+        {
+          "id": "buyer-education",
+          "name": "Buyer Education",
+          "description": "Guide buyers through the process — financing, inspections, negotiation, and first-home tips.",
+          "hashtags": ["#HomeBuyer", "#FirstHomeBuyer", "#BuyingTips", "#PropertyAdvice", "#RealEstateEducation"]
+        },
+        {
+          "id": "seller-strategies",
+          "name": "Seller Strategies",
+          "description": "Help sellers maximise value — staging, pricing, timing, and marketing strategies that get results.",
+          "hashtags": ["#SellerTips", "#HomeStaging", "#PropertyMarketing", "#MaximiseValue", "#SellYourHome"]
+        },
+        {
+          "id": "listings-showcase",
+          "name": "Listings Showcase",
+          "description": "Feature your current and past listings — property tours, key features, and success stories.",
+          "hashtags": ["#NewListing", "#PropertyTour", "#JustSold", "#DreamHome", "#OpenHome"]
+        },
+        {
+          "id": "investment-insights",
+          "name": "Investment Insights",
+          "description": "Property investment education — rental yields, capital growth, portfolio strategy, and market timing.",
+          "hashtags": ["#PropertyInvestment", "#RentalYield", "#CapitalGrowth", "#InvestmentProperty", "#WealthBuilding"]
+        }
+      ]
+    },
+    "financial-services": {
+      "label": "Financial Services & Advisory",
+      "domain_files": ["financial-services-industry.md"],
+      "suggested_pillars": [
+        {
+          "id": "wealth-building",
+          "name": "Wealth Building",
+          "description": "Long-term wealth strategies — compound growth, asset allocation, retirement planning, and financial independence.",
+          "hashtags": ["#WealthBuilding", "#FinancialFreedom", "#Investing", "#RetirementPlanning", "#MoneyStrategy"]
+        },
+        {
+          "id": "market-commentary",
+          "name": "Market Commentary",
+          "description": "Timely analysis of market movements, economic trends, and what they mean for your clients' portfolios.",
+          "hashtags": ["#MarketUpdate", "#EconomicOutlook", "#InvestmentInsight", "#FinancialMarkets", "#ExpertAnalysis"]
+        },
+        {
+          "id": "financial-literacy",
+          "name": "Financial Literacy",
+          "description": "Educate your audience — budgeting, debt management, tax strategy, and common financial mistakes to avoid.",
+          "hashtags": ["#FinancialLiteracy", "#MoneyTips", "#TaxStrategy", "#DebtFree", "#FinancialEducation"]
+        },
+        {
+          "id": "client-stories",
+          "name": "Client Stories",
+          "description": "Anonymised success stories — how clients achieved financial goals through your advisory process.",
+          "hashtags": ["#ClientSuccess", "#FinancialPlanning", "#GoalAchieved", "#AdvisoryWins", "#TrustedAdviser"]
+        },
+        {
+          "id": "compliance-trust",
+          "name": "Compliance & Trust",
+          "description": "Build authority through transparency — regulatory updates, fiduciary duty, and ethical practice.",
+          "hashtags": ["#Compliance", "#FiduciaryDuty", "#TrustedAdviser", "#FinancialRegulation", "#EthicalFinance"]
+        }
+      ]
+    }
+  }
+}

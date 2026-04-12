@@ -1,0 +1,162 @@
+{
+  "version": 2,
+  "workflows": [
+    {
+      "id": "video-production",
+      "name": "Video Production Pipeline",
+      "description": "Research a topic, write the script, produce the video, and publish. Runs 1-2x per day based on your content schedule.",
+      "module": "frontend",
+      "category": "content",
+      "enabled_by_default": true,
+      "estimatedDuration": "45-90 min per run",
+      "estimatedCost": "~$0.15/run",
+      "runsPerDay": 1,
+      "triggers": [
+        { "label": "Morning run", "schedule": "0 7 * * *", "default": true },
+        { "label": "Afternoon run", "schedule": "0 13 * * *", "default": false }
+      ],
+      "notificationCategory": "publish",
+      "steps": [
+        {
+          "id": "research",
+          "name": "Research Topic",
+          "agent": "research",
+          "tier": "fast",
+          "dependsOn": [],
+          "message": "You are generating video topics. Read /opt/AIWH/client/config/content-pillars.json for the client's pillars and rotation schedule. Pick today's pillar based on the rotation_epoch and rotation array. Generate 1 compelling video topic. Write topic + hook + outline to /opt/AIWH/client/content/video-topics/latest.json as {\"topic\": \"...\", \"hook\": \"...\", \"outline\": [...], \"pillar\": \"...\"}."
+        },
+        {
+          "id": "script",
+          "name": "Write Script",
+          "agent": "copywriter",
+          "tier": "balanced",
+          "dependsOn": ["research"],
+          "message": "Read /opt/AIWH/client/content/video-topics/latest.json for the video topic. Write a complete short-form video script (60-90 seconds). Include: hook (first 3 seconds), body (value delivery), CTA. Write the script to /opt/AIWH/client/content/video-scripts/latest.json as {\"script\": \"...\", \"scenes\": [...], \"duration_estimate\": \"...\"}. Keep it conversational and on-brand per the client profile."
+        },
+        {
+          "id": "produce",
+          "name": "Produce Video",
+          "agent": "video",
+          "tier": "balanced",
+          "dependsOn": ["script"],
+          "message": "Read /opt/AIWH/client/content/video-scripts/latest.json for the script, scenes, and captions. Run the STANDARD pipeline (short-form content, NOT cinematic): 1) Create a video job in video-jobs.db with status 'scripted', 2) Generate voiceover via ElevenLabs from the script text, 3) Generate avatar clip via HeyGen with the voiceover, 4) Add captions, 5) Run QA check, 6) Mark as approved. Use the sub-agent pipeline in your CORE.md Standard Mode section. Target format: 9:16 portrait for Instagram Reels. Report the job ID and final status when done."
+        },
+        {
+          "id": "publish",
+          "name": "Publish to Social",
+          "agent": "social",
+          "tier": "fast",
+          "dependsOn": ["produce"],
+          "message": "Check video-jobs.db for the latest approved video job. Schedule it to Buffer for the next available slot. Use the captions from /opt/AIWH/client/content/video-scripts/latest.json (instagram and x fields). Upload media to R2 first if needed. Report what was scheduled and to which platforms."
+        }
+      ]
+    },
+    {
+      "id": "social-content",
+      "name": "Social Content Pipeline",
+      "description": "Generate social media posts, get approval or auto-publish, and schedule to Buffer.",
+      "module": "frontend",
+      "category": "social",
+      "enabled_by_default": true,
+      "estimatedDuration": "15-30 min",
+      "estimatedCost": "~$0.05/run",
+      "runsPerDay": 1,
+            "triggers": [
+        { "label": "Daily run", "schedule": "0 7 * * *", "default": true }
+      ],
+      "notificationCategory": "publish",
+      "steps": [
+        {
+          "id": "create",
+          "name": "Create Content",
+          "agent": "copywriter",
+          "tier": "fast",
+          "dependsOn": [],
+          "message": "Generate today's social media content. Read client pillars from /opt/AIWH/client/config/content-pillars.json. Create a content mix: 1 educational post, 1 engagement post. Read /opt/AIWH/client/config/client-policy.json for auto_publish settings. Save drafts to the social content pipeline."
+        },
+        {
+          "id": "schedule",
+          "name": "Schedule Posts",
+          "agent": "social",
+          "tier": "fast",
+          "dependsOn": ["create"],
+          "message": "Check for approved social content. Schedule approved posts to Buffer for optimal posting times. Generate platform-specific captions and formatting for each channel. Report what was scheduled and what is pending review."
+        }
+      ]
+    },
+    {
+      "id": "knowledge-sprint",
+      "name": "Weekly Knowledge Sprint",
+      "description": "Research industry topics, extract knowledge entries, reconcile with existing database.",
+      "module": "system",
+      "category": "knowledge",
+      "enabled_by_default": true,
+      "estimatedDuration": "20-45 min",
+      "estimatedCost": "~$0.20/run",
+      "runsPerDay": 0,
+            "triggers": [
+        { "label": "Weekly (Sunday)", "schedule": "0 10 * * 0", "default": true }
+      ],
+      "notificationCategory": "systems",
+      "steps": [
+        {
+          "id": "research",
+          "name": "Research Topics",
+          "agent": "main",
+          "tier": "balanced",
+          "dependsOn": [],
+          "message": "Run a knowledge research sprint. Identify gaps in the client knowledge base. Spawn research sub-agents to gather fresh industry data, competitor insights, and methodology updates. Write findings to staging for extraction."
+        },
+        {
+          "id": "reconcile",
+          "name": "Reconcile Knowledge",
+          "agent": "scheduler",
+          "tier": "fast",
+          "dependsOn": ["research"],
+          "message": "Run knowledge reconciliation. Check client_knowledge.db for contradictions, duplicates, and stale entries. Archive low-quality entries. Report findings: entries added, duplicates found, contradictions resolved."
+        }
+      ]
+    },
+    {
+      "id": "weekly-reporting",
+      "name": "Weekly Performance Report",
+      "description": "Compile video metrics, cost analysis, and social engagement into a weekly summary.",
+      "module": "backend",
+      "category": "reporting",
+      "enabled_by_default": true,
+      "estimatedDuration": "10-20 min",
+      "estimatedCost": "~$0.05/run",
+      "runsPerDay": 0,
+            "triggers": [
+        { "label": "Weekly (Monday)", "schedule": "0 8 * * 1", "default": true }
+      ],
+      "notificationCategory": "general",
+      "steps": [
+        {
+          "id": "video-report",
+          "name": "Video Analytics",
+          "agent": "builder-manager",
+          "tier": "fast",
+          "dependsOn": [],
+          "message": "Generate the weekly video report. Analyse videos produced this week: count, topics covered, production times, any failures. Read from cinematic job history. Summarise performance vs last week."
+        },
+        {
+          "id": "cost-report",
+          "name": "Cost Summary",
+          "agent": "cfo",
+          "tier": "fast",
+          "dependsOn": [],
+          "message": "Generate the weekly cost summary. Read cost_breakdown table for the past 7 days. Break down by agent, model tier, and category. Flag any budget threshold breaches. Compare to previous week."
+        },
+        {
+          "id": "compile",
+          "name": "Compile Report",
+          "agent": "main",
+          "tier": "fast",
+          "dependsOn": ["video-report", "cost-report"],
+          "message": "Compile the weekly performance report from this week's video analytics and cost summary. Create a concise executive summary suitable for the client. Post the report to the notification channel."
+        }
+      ]
+    }
+  ]
+}

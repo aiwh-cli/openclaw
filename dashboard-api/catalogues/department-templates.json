@@ -1,0 +1,69 @@
+{
+  "version": 1,
+  "description": "Default department templates. Copied to client/config/departments.json during onboarding. Client-editable via dashboard.",
+  "departments": [
+    {
+      "id": "marketing",
+      "name": "Marketing",
+      "command_centre": "business",
+      "icon": "📣",
+      "color": "#8B5CF6",
+      "agents": ["research", "copywriter", "video", "social", "seo", "funnel"],
+      "integrations": ["buffer", "google-workspace"]
+    },
+    {
+      "id": "sales",
+      "name": "Sales",
+      "command_centre": "business",
+      "icon": "💰",
+      "color": "#F59E0B",
+      "agents": ["sales", "crm-manager", "research", "copywriter", "funnel", "calendar-manager"],
+      "integrations": ["ghl", "google-workspace", "calendly"]
+    },
+    {
+      "id": "operations",
+      "name": "Operations",
+      "command_centre": "business",
+      "icon": "⚙️",
+      "color": "#06B6D4",
+      "agents": ["email-manager", "calendar-manager", "crm-manager", "systems", "scheduler"],
+      "integrations": ["google-workspace", "calendly"]
+    },
+    {
+      "id": "finance",
+      "name": "Finance",
+      "command_centre": "business",
+      "icon": "📊",
+      "color": "#10B981",
+      "agents": ["cfo", "research", "crm-manager", "security-manager", "scheduler"],
+      "integrations": ["xero", "quickbooks", "stripe"]
+    },
+    {
+      "id": "engineering",
+      "name": "Engineering",
+      "command_centre": "business",
+      "icon": "🔧",
+      "color": "#EF4444",
+      "agents": ["builder-manager", "security-manager", "module-manager", "scheduler", "research"],
+      "integrations": []
+    },
+    {
+      "id": "wealth",
+      "name": "Wealth",
+      "command_centre": "wealth",
+      "icon": "🏛️",
+      "color": "#C9A84C",
+      "agents": ["wcc-agent"],
+      "integrations": ["xero", "quickbooks", "stripe"]
+    },
+    {
+      "id": "personal",
+      "name": "Personal",
+      "command_centre": "life",
+      "icon": "🌿",
+      "color": "#4CAF7A",
+      "agents": ["coach", "travel", "health-tracker"],
+      "integrations": ["whoop", "ultralabs"]
+    }
+  ]
+}

@@ -1,0 +1,233 @@
+{
+  "mcpServers": {
+    "gohighlevel": {
+      "name": "GoHighLevel",
+      "description": "GoHighLevel CRM — contacts, pipelines, conversations, calendars, invoices",
+      "category": "sales",
+      "transport": "http",
+      "url": "https://mcp.gohighlevel.com",
+      "env": { "GHL_API_KEY": "placeholder", "GHL_LOCATION_ID": "placeholder" },
+      "module": "backend", "agents": ["crm-manager", "sales", "funnel", "email-manager", "calendar-manager", "main"], "priority": "P1", "authType": "apikey",
+      "verified": false,
+      "docs_url": "https://marketplace.gohighlevel.com/",
+      "credential_hints": { "GHL_API_KEY": "GHL Settings > Business Profile > API Key", "GHL_LOCATION_ID": "GHL Settings > Business Profile > Location ID" },
+      "notes": "Official remote MCP, 21+ tools expanding to 250+."
+    },
+    "hubspot": {
+      "name": "HubSpot",
+      "description": "HubSpot CRM — contacts, deals, companies, tasks, email sequences",
+      "category": "sales",
+      "command": "npx", "args": ["-y", "@hubspot/mcp-server"],
+      "env": { "HUBSPOT_ACCESS_TOKEN": "placeholder" },
+      "module": "frontend", "agents": ["crm-manager", "sales", "email-manager"], "priority": "P2", "authType": "apikey",
+      "verified": false,
+      "docs_url": "https://developers.hubspot.com/docs/api/private-apps",
+      "credential_hints": { "HUBSPOT_ACCESS_TOKEN": "HubSpot > Settings > Integrations > Private Apps > Create > Access Token" }
+    },
+    "salesforce": {
+      "name": "Salesforce",
+      "description": "Salesforce CRM — leads, opportunities, accounts, deploy code",
+      "category": "sales",
+      "command": "npx", "args": ["-y", "@salesforce/mcp"],
+      "env": { "SALESFORCE_ACCESS_TOKEN": "placeholder" },
+      "module": "frontend", "agents": ["crm-manager", "sales"], "priority": "P2", "authType": "oauth",
+      "verified": false,
+      "docs_url": "https://help.salesforce.com/s/articleView?id=sf.connected_app_create_api_integration.htm",
+      "credential_hints": { "SALESFORCE_ACCESS_TOKEN": "Salesforce Setup > Apps > App Manager > Connected App > OAuth > Access Token" }
+    },
+    "shopify": {
+      "name": "Shopify",
+      "description": "Shopify — product management, orders, store data, API schemas",
+      "category": "sales",
+      "command": "npx", "args": ["-y", "@shopify/dev-mcp@latest"],
+      "env": {},
+      "module": "frontend", "agents": ["sales", "cfo"], "priority": "P2", "authType": "apikey",
+      "verified": false,
+      "docs_url": "https://shopify.dev/docs/apps/build/authentication",
+      "credential_hints": {},
+      "notes": "Official Shopify MCP — focuses on docs/API schemas."
+    },
+    "stripe": {
+      "name": "Stripe",
+      "description": "Stripe payments, billing, invoices, customers",
+      "category": "finance",
+      "command": "npx", "args": ["-y", "@stripe/mcp"],
+      "env": { "STRIPE_SECRET_KEY": "placeholder" },
+      "module": "backend", "agents": ["cfo", "sales", "main"], "priority": "P1", "authType": "apikey",
+      "verified": false,
+      "docs_url": "https://dashboard.stripe.com/apikeys",
+      "credential_hints": { "STRIPE_SECRET_KEY": "Stripe Dashboard > Developers > API Keys > Secret key" }
+    },
+    "xero": {
+      "name": "Xero",
+      "description": "Xero accounting, invoices, expenses, bank reconciliation",
+      "category": "finance",
+      "command": "npx", "args": ["-y", "@xeroapi/xero-mcp-server"],
+      "env": { "XERO_CLIENT_ID": "placeholder", "XERO_CLIENT_SECRET": "placeholder" },
+      "module": "backend", "agents": ["cfo"], "priority": "P1", "authType": "oauth",
+      "verified": false,
+      "docs_url": "https://developer.xero.com/app/manage",
+      "credential_hints": { "XERO_CLIENT_ID": "Xero Developer > My Apps > Your App > Client ID", "XERO_CLIENT_SECRET": "Xero Developer > My Apps > Your App > Client Secret" }
+    },
+    "quickbooks": {
+      "name": "QuickBooks",
+      "description": "QuickBooks Online — invoices, customers, accounts, payments, bookkeeping",
+      "category": "finance",
+      "command": "python3", "args": ["-m", "quickbooks_mcp_server"],
+      "env": { "QUICKBOOKS_CLIENT_ID": "placeholder", "QUICKBOOKS_CLIENT_SECRET": "placeholder" },
+      "module": "backend", "agents": ["cfo"], "priority": "P2", "authType": "oauth",
+      "verified": false,
+      "docs_url": "https://developer.intuit.com/app/developer/dashboard",
+      "credential_hints": { "QUICKBOOKS_CLIENT_ID": "Intuit Developer > Dashboard > Your App > Keys & OAuth > Client ID", "QUICKBOOKS_CLIENT_SECRET": "Intuit Developer > Dashboard > Your App > Keys & OAuth > Client Secret" },
+      "notes": "Official Intuit MCP, Python-based"
+    },
+    "elevenlabs": {
+      "name": "ElevenLabs",
+      "description": "ElevenLabs text-to-speech, voice cloning, transcription, sound effects",
+      "category": "content",
+      "command": "uvx", "args": ["elevenlabs-mcp"],
+      "env": { "ELEVENLABS_API_KEY": "placeholder" },
+      "module": "frontend", "agents": ["video", "copywriter"], "priority": "P1", "authType": "apikey",
+      "verified": false,
+      "docs_url": "https://elevenlabs.io/app/settings/api-keys",
+      "credential_hints": { "ELEVENLABS_API_KEY": "ElevenLabs > Profile > API Keys > Create API Key" }
+    },
+    "heygen": {
+      "name": "HeyGen",
+      "description": "HeyGen AI avatar videos, presenter clips, talking head generation",
+      "category": "content",
+      "transport": "http", "url": "https://mcp.heygen.com",
+      "env": { "HEYGEN_API_KEY": "placeholder" },
+      "module": "frontend", "agents": ["video"], "priority": "P1", "authType": "apikey",
+      "verified": false,
+      "docs_url": "https://app.heygen.com/settings?nav=API",
+      "credential_hints": { "HEYGEN_API_KEY": "HeyGen > Settings > API > API Key" },
+      "notes": "Local repo archived 2026-03-09, remote MCP only"
+    },
+    "google-workspace": {
+      "name": "Google Workspace",
+      "description": "Google Workspace — Drive, Sheets, Calendar, Gmail, Slides",
+      "category": "productivity",
+      "command": "npx", "args": ["-y", "google-workspace-mcp"],
+      "env": { "GOOGLE_WORKSPACE_CREDENTIALS": "placeholder" },
+      "module": "backend", "agents": ["systems", "research", "copywriter", "calendar-manager", "email-manager", "scheduler", "travel", "main"], "priority": "P1", "authType": "oauth",
+      "verified": false,
+      "docs_url": "https://console.cloud.google.com/apis/credentials",
+      "credential_hints": { "GOOGLE_WORKSPACE_CREDENTIALS": "Google Cloud Console > APIs & Services > Credentials > OAuth 2.0 Client ID or Service Account JSON" },
+      "notes": "Community MCP. Bundles Drive + Sheets + Calendar + Gmail."
+    },
+    "calendly": {
+      "name": "Calendly",
+      "description": "Calendly scheduling — events, invitees, availability, booking management",
+      "category": "productivity",
+      "command": "npx", "args": ["-y", "calendly-mcp-server"],
+      "env": { "CALENDLY_API_KEY": "placeholder" },
+      "module": "backend", "agents": ["calendar-manager", "sales", "main"], "priority": "P1", "authType": "apikey",
+      "verified": false,
+      "docs_url": "https://developer.calendly.com/how-to-authenticate-with-personal-access-tokens",
+      "credential_hints": { "CALENDLY_API_KEY": "Calendly > Integrations > API & Webhooks > Personal Access Tokens > Create" }
+    },
+    "todoist": {
+      "name": "Todoist",
+      "description": "Todoist task management, daily priorities, project tracking",
+      "category": "productivity",
+      "transport": "http", "url": "https://ai.todoist.net/mcp",
+      "env": { "TODOIST_API_TOKEN": "placeholder" },
+      "module": "lifestyle", "agents": ["coach", "calendar-manager"], "priority": "P1", "authType": "apikey",
+      "verified": false,
+      "docs_url": "https://app.todoist.com/app/settings/integrations/developer",
+      "credential_hints": { "TODOIST_API_TOKEN": "Todoist > Settings > Integrations > Developer > API token" }
+    },
+    "notion": {
+      "name": "Notion",
+      "description": "Notion — pages, databases, search, knowledge base management",
+      "category": "productivity",
+      "command": "npx", "args": ["-y", "@notionhq/notion-mcp-server"],
+      "env": { "NOTION_API_KEY": "placeholder" },
+      "module": "backend", "agents": ["systems", "research", "copywriter"], "priority": "P2", "authType": "apikey",
+      "verified": false,
+      "docs_url": "https://www.notion.so/profile/integrations",
+      "credential_hints": { "NOTION_API_KEY": "Notion > Settings > Connections > Develop or manage integrations > New integration > Internal Integration Secret" }
+    },
+    "asana": {
+      "name": "Asana",
+      "description": "Asana — tasks, projects, sections, team workload, goals",
+      "category": "productivity",
+      "transport": "http", "url": "https://mcp.asana.com/v2/mcp",
+      "env": { "ASANA_ACCESS_TOKEN": "placeholder" },
+      "module": "backend", "agents": ["systems"], "priority": "P2", "authType": "apikey",
+      "verified": false,
+      "docs_url": "https://app.asana.com/0/my-apps",
+      "credential_hints": { "ASANA_ACCESS_TOKEN": "Asana > My Settings > Apps > Personal Access Tokens > Create" },
+      "notes": "Official Asana remote MCP (V2). V1 SSE shuts down 2026-05-11."
+    },
+    "make": {
+      "name": "Make",
+      "description": "Make.com (Integromat) workflow automation — scenarios as callable tools",
+      "category": "productivity",
+      "command": "npx", "args": ["-y", "@makehq/mcp-server"],
+      "env": { "MAKE_API_TOKEN": "placeholder" },
+      "module": "backend", "agents": ["systems", "funnel", "email-manager"], "priority": "P1", "authType": "apikey",
+      "verified": false,
+      "docs_url": "https://www.make.com/en/api-documentation",
+      "credential_hints": { "MAKE_API_TOKEN": "Make.com > Profile > API > Create Token" },
+      "notes": "Official MCP by Integromat"
+    },
+    "brave-search": {
+      "name": "Brave Search",
+      "description": "Brave Search — web search, news, local results, AI summaries",
+      "category": "infrastructure",
+      "command": "npx", "args": ["-y", "@brave/brave-search-mcp-server"],
+      "env": { "BRAVE_API_KEY": "placeholder" },
+      "module": "frontend", "agents": ["research", "copywriter", "social", "seo", "main"], "priority": "P1", "authType": "apikey",
+      "verified": false,
+      "docs_url": "https://brave.com/search/api/",
+      "credential_hints": { "BRAVE_API_KEY": "Brave Search API > Dashboard > API Keys" }
+    },
+    "supabase": {
+      "name": "Supabase",
+      "description": "Supabase — database queries, auth, storage, edge functions",
+      "category": "infrastructure",
+      "command": "npx", "args": ["-y", "@supabase/mcp-server-supabase"],
+      "env": { "SUPABASE_URL": "placeholder", "SUPABASE_ANON_KEY": "placeholder" },
+      "module": "backend", "agents": ["systems", "builder-manager", "security-manager"], "priority": "P2", "authType": "apikey",
+      "verified": false,
+      "docs_url": "https://supabase.com/dashboard/project/_/settings/api",
+      "credential_hints": { "SUPABASE_URL": "Supabase Dashboard > Your Project > Settings > API > Project URL", "SUPABASE_ANON_KEY": "Supabase Dashboard > Your Project > Settings > API > anon public key" }
+    },
+    "cloudflare": {
+      "name": "Cloudflare",
+      "description": "Cloudflare — R2 storage, Workers, KV, D1 databases",
+      "category": "infrastructure",
+      "command": "npx", "args": ["-y", "@cloudflare/mcp-server-cloudflare"],
+      "env": { "CLOUDFLARE_API_TOKEN": "placeholder" },
+      "module": "backend", "agents": ["systems", "builder-manager", "security-manager"], "priority": "P2", "authType": "apikey",
+      "verified": false,
+      "docs_url": "https://dash.cloudflare.com/profile/api-tokens",
+      "credential_hints": { "CLOUDFLARE_API_TOKEN": "Cloudflare Dashboard > My Profile > API Tokens > Create Token" }
+    },
+    "twilio": {
+      "name": "Twilio",
+      "description": "Twilio — SMS, voice calls, WhatsApp Business, all Twilio APIs",
+      "category": "infrastructure",
+      "command": "npx", "args": ["-y", "@twilio-alpha/mcp"],
+      "env": { "TWILIO_ACCOUNT_SID": "placeholder", "TWILIO_API_KEY": "placeholder", "TWILIO_API_SECRET": "placeholder" },
+      "module": "backend", "agents": ["email-manager", "sales"], "priority": "P2", "authType": "apikey",
+      "verified": false,
+      "docs_url": "https://www.twilio.com/console",
+      "credential_hints": { "TWILIO_ACCOUNT_SID": "Twilio Console > Account Info > Account SID", "TWILIO_API_KEY": "Twilio Console > API Keys > Create API Key", "TWILIO_API_SECRET": "Twilio Console > API Keys > Create API Key > Secret (shown once)" },
+      "notes": "Official Twilio Labs MCP (alpha). Exposes ALL Twilio APIs."
+    },
+    "whoop": {
+      "name": "Whoop",
+      "description": "Whoop health data — sleep, recovery, strain, workout, cycle metrics",
+      "category": "health",
+      "command": "npx", "args": ["-y", "whoop-mcp-server"],
+      "env": { "WHOOP_CLIENT_ID": "placeholder", "WHOOP_CLIENT_SECRET": "placeholder" },
+      "module": "lifestyle", "agents": ["coach"], "priority": "P1", "authType": "apikey",
+      "verified": false,
+      "docs_url": "https://developer.whoop.com/",
+      "credential_hints": { "WHOOP_CLIENT_ID": "Whoop Developer > Your App > Client ID", "WHOOP_CLIENT_SECRET": "Whoop Developer > Your App > Client Secret" }
+    }
+  }
+}

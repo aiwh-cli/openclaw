@@ -1,0 +1,352 @@
+{
+  "version": "1.0.0",
+  "description": "Capabilities catalogue — what Branson's team can do for you. Branson reads this to answer 'what can you do?' and delegates to the right agent. Branson can also create projects with tasks and assign them to the right agents — just describe your goal.",
+  "modules": {
+    "frontend": {
+      "name": "Frontend Module",
+      "description": "Content creation, marketing, and client-facing operations",
+      "agents": {
+        "copywriter": {
+          "name": "Copywriter",
+          "description": "Craft magnetic, platform-optimized copy that converts",
+          "capabilities": [
+            {
+              "id": "reel-scripts",
+              "name": "Short-Form Video Scripts",
+              "description": "Write 130-160 word scripts for Instagram Reels and TikTok with hooks, emotional beats, and CTAs",
+              "tools": ["knowledge-search-unified.sh"],
+              "requires": []
+            },
+            {
+              "id": "email-sequences",
+              "name": "Email Sequences",
+              "description": "Write multi-step email sequences with subject lines, body copy, and CTAs",
+              "tools": ["knowledge-search-unified.sh"],
+              "requires": []
+            },
+            {
+              "id": "landing-page-copy",
+              "name": "Landing Page Copy",
+              "description": "Write conversion-focused landing page copy: hero, problem, solution, proof, CTA",
+              "tools": ["knowledge-search-unified.sh"],
+              "requires": []
+            },
+            {
+              "id": "social-captions",
+              "name": "Social Media Captions",
+              "description": "Platform-specific captions for Instagram (220 chars, hashtags) and X/Twitter (280 chars, no hashtags)",
+              "tools": ["knowledge-search-unified.sh"],
+              "requires": []
+            },
+            {
+              "id": "cinematic-briefs",
+              "name": "Cinematic Video Briefs",
+              "description": "Write 200-400 word narrative briefs with emotional arc, visual metaphors, and audience hooks for AI video production",
+              "tools": ["knowledge-search-unified.sh"],
+              "requires": []
+            }
+          ]
+        },
+        "video": {
+          "name": "Video Producer",
+          "description": "End-to-end AI video production — from script to published video",
+          "capabilities": [
+            {
+              "id": "cinematic-video",
+              "name": "Cinematic Video Production",
+              "description": "Produce short-form videos using AI: keyframe generation (Imagen 3), video clips (Veo 3.1), voice narration (ElevenLabs), captions, and final assembly",
+              "tools": ["cinematic-producer.py", "ffmpeg", "ffprobe"],
+              "requires": ["ANTHROPIC_API_KEY", "GOOGLE_CLOUD"]
+            },
+            {
+              "id": "avatar-video",
+              "name": "Avatar Video Production",
+              "description": "Create talking-head videos with AI avatar (HeyGen) synced to voice narration",
+              "tools": ["cinematic-producer.py", "ffmpeg"],
+              "requires": ["HEYGEN_API_KEY", "ELEVENLABS_API_KEY"]
+            },
+            {
+              "id": "voice-generation",
+              "name": "Voice Narration",
+              "description": "Generate natural voice narration from scripts using ElevenLabs",
+              "tools": ["cinematic-producer.py"],
+              "requires": ["ELEVENLABS_API_KEY"]
+            },
+            {
+              "id": "video-captions",
+              "name": "Caption Burn-In",
+              "description": "Auto-generate and burn captions into videos with customizable style and positioning",
+              "tools": ["ffmpeg", "whisper"],
+              "requires": []
+            },
+            {
+              "id": "social-publishing",
+              "name": "Social Media Publishing",
+              "description": "Schedule and publish videos to Instagram and X via Buffer",
+              "tools": ["buffer-api", "gdrive"],
+              "requires": ["BUFFER_API_TOKEN"]
+            }
+          ]
+        },
+        "research": {
+          "name": "Research Agent",
+          "description": "Web research, competitive analysis, and data gathering",
+          "capabilities": [
+            {
+              "id": "web-research",
+              "name": "Web Research",
+              "description": "Search the web for information, trends, competitor analysis, and industry insights",
+              "tools": ["web_search", "web_fetch", "browser"],
+              "requires": []
+            },
+            {
+              "id": "topic-generation",
+              "name": "Content Topic Generation",
+              "description": "Research trending topics and generate content ideas aligned with your content pillars",
+              "tools": ["web_search", "knowledge-search-unified.sh"],
+              "requires": []
+            }
+          ]
+        },
+        "funnel": {
+          "name": "Funnel Builder",
+          "description": "Design and optimize sales funnels and conversion flows",
+          "capabilities": [
+            {
+              "id": "funnel-design",
+              "name": "Sales Funnel Design",
+              "description": "Design multi-step funnels: landing pages, lead magnets, application forms, booking flows",
+              "tools": [],
+              "requires": []
+            }
+          ]
+        },
+        "sales": {
+          "name": "Sales Agent",
+          "description": "Sales strategy, outreach, and pipeline management",
+          "capabilities": [
+            {
+              "id": "sales-strategy",
+              "name": "Sales Strategy",
+              "description": "Develop sales messaging, objection handling, and pipeline strategy",
+              "tools": [],
+              "requires": []
+            }
+          ]
+        },
+        "social": {
+          "name": "Social Media Manager",
+          "description": "Social media strategy and content planning",
+          "capabilities": [
+            {
+              "id": "content-planning",
+              "name": "Content Calendar Planning",
+              "description": "Plan content calendars across platforms aligned with your content pillars and business goals",
+              "tools": [],
+              "requires": []
+            }
+          ]
+        },
+        "seo": {
+          "name": "SEO Agent",
+          "description": "Search engine optimisation strategy, keyword research, and content optimisation",
+          "capabilities": [
+            {
+              "id": "keyword-research",
+              "name": "Keyword Research",
+              "description": "Identify high-intent keywords for your niche, grouped by topic clusters and prioritised by opportunity",
+              "tools": [],
+              "requires": []
+            },
+            {
+              "id": "content-briefs",
+              "name": "SEO Content Briefs",
+              "description": "Create structured briefs for the Copywriter with target keywords, search intent, and competitor gaps",
+              "tools": [],
+              "requires": []
+            },
+            {
+              "id": "technical-audit",
+              "name": "Technical SEO Audit",
+              "description": "Check site structure, crawlability, page speed, mobile-friendliness, and schema markup",
+              "tools": [],
+              "requires": []
+            },
+            {
+              "id": "competitor-analysis",
+              "name": "Competitor Analysis",
+              "description": "Analyse competing domains for keyword rankings, content gaps, and backlink opportunities",
+              "tools": [],
+              "requires": []
+            }
+          ]
+        }
+      }
+    },
+    "backend": {
+      "name": "Backend Module",
+      "description": "Business operations, CRM, finance, and system management",
+      "agents": {
+        "crm-manager": {
+          "name": "CRM Manager",
+          "description": "Manage contacts, pipelines, and customer relationships via GoHighLevel",
+          "capabilities": [
+            {
+              "id": "contact-management",
+              "name": "Contact Management",
+              "description": "Create, search, update, tag, and manage contacts in your CRM",
+              "tools": ["ghl.sh"],
+              "requires": ["GHL_API_KEY"]
+            },
+            {
+              "id": "pipeline-management",
+              "name": "Pipeline & Deals",
+              "description": "Create and manage sales opportunities, move deals through pipeline stages, track won/lost",
+              "tools": ["ghl.sh"],
+              "requires": ["GHL_API_KEY"]
+            },
+            {
+              "id": "conversations",
+              "name": "CRM Conversations",
+              "description": "Send and manage conversations with contacts via SMS, email, WhatsApp through GHL",
+              "tools": ["ghl.sh"],
+              "requires": ["GHL_API_KEY"]
+            },
+            {
+              "id": "calendar-booking",
+              "name": "Calendar & Bookings",
+              "description": "Check availability, book appointments, and manage calendars in GHL",
+              "tools": ["ghl.sh"],
+              "requires": ["GHL_API_KEY"]
+            }
+          ]
+        },
+        "cfo": {
+          "name": "CFO Assistant",
+          "description": "Financial oversight, cost tracking, and budget management",
+          "capabilities": [
+            {
+              "id": "cost-monitoring",
+              "name": "API Cost Monitoring",
+              "description": "Track daily and monthly API spend across all services, alert on budget thresholds",
+              "tools": ["daily-cost-monitor.sh"],
+              "requires": []
+            },
+            {
+              "id": "financial-analysis",
+              "name": "Financial Analysis",
+              "description": "Analyze business finances, revenue tracking, and cost optimization recommendations",
+              "tools": [],
+              "requires": []
+            }
+          ]
+        },
+        "calendar-manager": {
+          "name": "Calendar Manager",
+          "description": "Schedule and calendar management",
+          "capabilities": [
+            {
+              "id": "calendar-management",
+              "name": "Calendar Management",
+              "description": "Manage your calendar, schedule events, and coordinate meetings",
+              "tools": [],
+              "requires": []
+            }
+          ]
+        },
+        "email-manager": {
+          "name": "Email Manager",
+          "description": "Email operations via Google Workspace",
+          "capabilities": [
+            {
+              "id": "email-operations",
+              "name": "Email Management",
+              "description": "Search inbox, read emails, draft and send replies via Gmail",
+              "tools": ["gws"],
+              "requires": ["GOOGLE_CLOUD"]
+            }
+          ]
+        },
+        "systems": {
+          "name": "Systems Agent",
+          "description": "Infrastructure monitoring, backups, and system maintenance",
+          "capabilities": [
+            {
+              "id": "backup-management",
+              "name": "Automated Backups",
+              "description": "Hourly local backups + 3x daily Google Drive backups with encryption",
+              "tools": ["backup-snapshot.sh", "backup-gdrive-desktop.sh"],
+              "requires": ["GOOGLE_CLOUD"]
+            },
+            {
+              "id": "system-monitoring",
+              "name": "System Health Monitoring",
+              "description": "Monitor logs, disk usage, service health, and cron job status",
+              "tools": ["openclaw", "sqlite3"],
+              "requires": []
+            },
+            {
+              "id": "knowledge-pipeline",
+              "name": "Knowledge Pipeline",
+              "description": "Nightly extraction of learnings from agent memories into searchable knowledge base",
+              "tools": ["nightly-knowledge-pipeline.sh"],
+              "requires": []
+            },
+            {
+              "id": "media-archival",
+              "name": "Media Archival",
+              "description": "Daily archival of generated media to Google Drive with verification and local cleanup",
+              "tools": ["media-archive-daily.sh", "gdrive"],
+              "requires": ["GOOGLE_CLOUD"]
+            }
+          ]
+        }
+      }
+    },
+    "lifestyle": {
+      "name": "Lifestyle Module",
+      "description": "Personal productivity, coaching, and lifestyle management",
+      "agents": {
+        "coach": {
+          "name": "Personal Coach",
+          "description": "Accountability, goal tracking, and personal development coaching",
+          "capabilities": [
+            {
+              "id": "coaching",
+              "name": "Personal Coaching",
+              "description": "Goal setting, accountability tracking, habit building, and personal development guidance",
+              "tools": [],
+              "requires": []
+            }
+          ]
+        },
+        "trading": {
+          "name": "Trading Assistant",
+          "description": "Market analysis and trading strategy support",
+          "capabilities": [
+            {
+              "id": "trading-analysis",
+              "name": "Trading Analysis",
+              "description": "Market research, strategy analysis, and trading journal management",
+              "tools": ["web_search"],
+              "requires": []
+            }
+          ]
+        },
+        "travel": {
+          "name": "Travel Manager",
+          "description": "Travel planning and itinerary management",
+          "capabilities": [
+            {
+              "id": "travel-planning",
+              "name": "Travel Planning",
+              "description": "Research destinations, plan itineraries, compare flights and accommodation",
+              "tools": ["web_search", "web_fetch"],
+              "requires": []
+            }
+          ]
+        }
+      }
+    }
+  }
+}

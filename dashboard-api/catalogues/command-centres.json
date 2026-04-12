@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "command_centres": {
+    "business": {
+      "name": "Business Command Centre",
+      "description": "Run your business on autopilot — marketing, sales, operations, and finance.",
+      "icon": "💼",
+      "color": "#6366f1",
+      "agents": [
+        "research",
+        "copywriter",
+        "video",
+        "social",
+        "seo",
+        "funnel",
+        "sales",
+        "crm-manager",
+        "calendar-manager",
+        "email-manager",
+        "cfo"
+      ]
+    },
+    "wealth": {
+      "name": "Wealth Command Centre",
+      "description": "Track your wealth, build your financial fortress, and achieve sovereignty.",
+      "icon": "🏛️",
+      "color": "#C9A84C",
+      "owner_locked": true,
+      "agents": [
+        "wcc-agent"
+      ]
+    },
+    "life": {
+      "name": "Life Command Centre",
+      "description": "Personal growth, health tracking, and lifestyle management.",
+      "icon": "🌿",
+      "color": "#4CAF7A",
+      "owner_locked": true,
+      "agents": [
+        "coach",
+        "travel",
+        "health-tracker"
+      ]
+    }
+  },
+  "system_agents": [
+    "builder-manager",
+    "security-manager",
+    "module-manager",
+    "scheduler",
+    "ai-council",
+    "systems"
+  ],
+  "orchestrator": "main"
+}
