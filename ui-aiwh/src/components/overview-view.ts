@@ -22,10 +22,6 @@ const modelTierInfo = (window as any).modelTierInfo as (m: string) => { tier: st
 const switchView = (window as any).switchView as (v: string) => void;
 const updateNotifBadge = (window as any).updateNotifBadge as (n: number) => void;
 
-const SUB_AGENTS = new Set(['voice-agent','avatar-agent','caption-agent','qa-agent','publisher-agent']);
-const MODULE_LABELS: Record<string, string> = { core:'CEO', system:'System', frontend:'Frontend', backend:'Backend', lifestyle:'Lifestyle' };
-const MODULE_ROWS = [['core','system'],['frontend'],['backend'],['lifestyle']];
-
 @customElement('overview-view')
 export class OverviewView extends LitElement {
   createRenderRoot() { return this; }
@@ -77,8 +73,6 @@ export class OverviewView extends LitElement {
     const monthlyBar = this._barPct(mp.spend, mp.budget);
 
     return html`
-      <div id="ov-agent-grid" class="ov-agent-grid">${this._renderAgentGrid(d.agents.list)}</div>
-
       <div class="orbital-stats-bar">
         <div class="ostat-card glass" id="ostat-spend">
           <div class="ostat-label">Daily Spend</div>
@@ -138,51 +132,6 @@ export class OverviewView extends LitElement {
         </div>
       </div>
     `;
-  }
-
-  private _renderAgentGrid(agents: Agent[]) {
-    if (!agents.length) { return html`<div class="empty-msg">No agents loaded</div>`; }
-    const filtered = agents.filter(a => !SUB_AGENTS.has(a.id));
-    const ceo = filtered.find(a => a.id === 'main');
-    const rest = filtered.filter(a => a.id !== 'main');
-    const groups: Record<string, Agent[]> = { core: ceo ? [ceo] : [] };
-    for (const a of rest) {
-      const mod = (a.module || 'system').toLowerCase();
-      if (!groups[mod]) { groups[mod] = []; }
-      groups[mod].push(a);
-    }
-    return MODULE_ROWS.map(row => html`
-      <div class="ov-row">
-        ${row.map(mod => {
-          const list = groups[mod];
-          if (!list?.length) { return nothing; }
-          const label = MODULE_LABELS[mod] || mod;
-          return html`
-            <div class="ov-section">
-              <div class="ov-section-label">${label}</div>
-              <div class="ov-section-cards">${list.map(a => this._renderCard(a))}</div>
-            </div>`;
-        })}
-      </div>
-    `);
-  }
-
-  private _renderCard(a: Agent) {
-    const status = a.status || 'idle';
-    const mti = modelTierInfo(a.modelTier || a.model_tier || 'haiku');
-    const name = a.displayName || a.display_name || a.id;
-    const avatarUrl = a.avatar_url || '';
-    return html`
-      <div class="ov-agent-card glass" @click=${() => switchView('team')} title="${name} — ${mti.tier}">
-        <span class="ov-agent-status status-dot status-${status}"></span>
-        <div class="ov-agent-avatar">
-          ${avatarUrl
-            ? html`<img src="${avatarUrl}" alt="" class="ov-agent-avatar-img">`
-            : html`<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="6" r="3" stroke="currentColor" stroke-width="1.2" opacity="0.4"/><path d="M2.5 14c0-3 2.5-5.5 5.5-5.5s5.5 2.5 5.5 5.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity="0.4"/></svg>`}
-        </div>
-        <div class="ov-agent-name">${name}</div>
-        <div class="ov-agent-tier">${mti.tier}</div>
-      </div>`;
   }
 
   private _renderActivity(items: any[]) {

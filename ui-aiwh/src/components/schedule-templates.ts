@@ -1,5 +1,8 @@
 // Schedule Templates — pre-built cron catalogue modal.
-// Called by schedule-crons.js (vanilla JS, Phase 4). Exposed on window.
+// Exposed on window so inline onclick handlers can call them.
+
+import { _cpPickerHTML, _cpParseCron } from './schedule-cron-picker.js';
+import { _schedCache } from './schedule-cron-crud.js';
 
 const api = (window as any).api as (url: string, opts?: any) => Promise<any>;
 const showToast = (window as any).showToast as (msg: string, type?: string) => void;
@@ -7,15 +10,15 @@ const showModal = (window as any).showModal as (html: string, cls?: string) => v
 const closeModal = (window as any).closeModal as () => void;
 const escHtml = (window as any).escHtml as (s: string) => string;
 
-function cpPickerHTML(state: any): string { return (window as any)._cpPickerHTML(state); }
-function cpParseCron(expr: string): any { return (window as any)._cpParseCron(expr); }
-function schedCache(): any { return (window as any)._schedCache || { openclaw: [], local: [], scripts: [] }; }
-
 const _TPL_MODULE_META: Record<string, { label: string; icon: string; color: string }> = {
   system:    { label: 'System',    icon: '⚙️', color: 'var(--cyan, #00e5ff)' },
-  frontend:  { label: 'Frontend',  icon: '🎬', color: 'var(--magenta, #ff00e5)' },
-  backend:   { label: 'Backend',   icon: '📊', color: 'var(--accent, #C9A84C)' },
-  lifestyle: { label: 'Lifestyle', icon: '🏃', color: 'var(--green, #00ff88)' },
+  business:  { label: 'Business',  icon: '💼', color: 'var(--magenta, #ff00e5)' },
+  wealth:    { label: 'Wealth',    icon: '🏛️', color: 'var(--accent, #C9A84C)' },
+  life:      { label: 'Life',      icon: '🌿', color: 'var(--green, #00ff88)' },
+  // Legacy module names (cron templates still reference these)
+  frontend:  { label: 'Business — Content',  icon: '🎬', color: 'var(--magenta, #ff00e5)' },
+  backend:   { label: 'Business — Ops',   icon: '📊', color: 'var(--cyan, #00e5ff)' },
+  lifestyle: { label: 'Life & Wealth', icon: '🏃', color: 'var(--green, #00ff88)' },
 };
 
 let _templateCache: any = null;
@@ -56,7 +59,7 @@ function _scheduleToHuman(expr: string): string {
 }
 
 function _isTemplateActive(tpl: any): boolean {
-  const cache = schedCache();
+  const cache = _schedCache;
   const all = [...cache.openclaw, ...cache.scripts];
   const tId = (tpl.id || '').toLowerCase();
   const tIdFlat = tId.replace(/-/g, '');
@@ -221,7 +224,7 @@ export async function selectTemplate(tplId: string) {
         <label class="cp-label">Agent</label>
         <select id="cron-add-agent" class="cp-input">${agentOptions}</select>
       </div>
-      ${cpPickerHTML(state)}
+      ${_cpPickerHTML(state)}
       <div class="cp-field">
         <label class="cp-label">Timezone</label>
         <input id="cron-add-tz" class="cp-input" value="${escHtml(tz)}">
@@ -265,9 +268,7 @@ async function selectScriptTemplate(tpl: any) {
   const data = await loadTemplates();
   const tz = data?.clientTimezone || 'Australia/Brisbane';
 
-  const state = typeof (window as any)._cpParseCron === 'function'
-    ? cpParseCron(tpl.schedule || '0 9 * * *')
-    : { freq: 'daily', times: ['09:00'], days: [0,1,2,3,4,5,6] };
+  const state = _cpParseCron(tpl.schedule || '0 9 * * *');
 
   const html = `
     <div style="display:flex;align-items:center;gap:8px;margin:0 0 12px;">
@@ -285,7 +286,7 @@ async function selectScriptTemplate(tpl: any) {
         <label class="cp-label">Script path</label>
         <input id="sc-add-path" class="cp-input" value="${escHtml(tpl.script_path || '')}">
       </div>
-      ${cpPickerHTML(state)}
+      ${_cpPickerHTML(state)}
       <div class="cp-field">
         <label class="cp-label">Timezone</label>
         <input id="sc-add-tz" class="cp-input" value="${escHtml(tz)}">
@@ -303,7 +304,7 @@ async function selectScriptTemplate(tpl: any) {
   showModal(html, 'modal-md');
 }
 
-// Expose on window for schedule-crons.js (vanilla JS) to call
+// Expose on window for inline onclick handlers in generated HTML
 (window as any).showTemplatePicker = showTemplatePicker;
 (window as any).selectTemplate = selectTemplate;
 (window as any).selectScriptTemplate = selectScriptTemplate;

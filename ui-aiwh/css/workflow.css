@@ -1,0 +1,87 @@
+/* ─── Workflow Catalogue & Detail ─── */
+
+.wf-section { margin-bottom: 24px; }
+.wf-section-title { font-size: 15px; font-weight: 600; margin: 0 0 4px; color: var(--text-primary); }
+.wf-section-desc { font-size: 12px; color: var(--text-muted); margin: 0 0 12px; }
+
+/* Module groups */
+.wf-module-group { margin-bottom: 16px; }
+.wf-module-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+
+/* Card grid */
+.wf-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+
+.wf-card {
+  background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px;
+  padding: 14px; transition: border-color 150ms, box-shadow 150ms; cursor: default;
+}
+.wf-card:hover { border-color: var(--accent, #C9A84C); box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+.wf-card-active { border-color: var(--cyan, #00e5ff); }
+
+.wf-card-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.wf-card-name { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+.wf-card-desc { font-size: 12px; color: var(--text-muted); line-height: 1.4; margin-bottom: 8px; min-height: 32px; }
+.wf-card-meta { display: flex; gap: 12px; font-size: 11px; color: var(--text-dim); margin-bottom: 8px; }
+.wf-card-actions { display: flex; gap: 6px; justify-content: flex-end; }
+
+/* Badges */
+.wf-badge { font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: 500; white-space: nowrap; }
+.wf-badge-rec { background: rgba(201,168,76,0.15); color: var(--accent, #C9A84C); }
+.wf-badge-queued { background: rgba(138,133,120,0.15); color: var(--text-muted); }
+.wf-badge-running { background: rgba(0,229,255,0.15); color: var(--cyan, #00e5ff); animation: wf-pulse 2s infinite; }
+.wf-badge-success { background: rgba(0,255,136,0.15); color: var(--success, #00ff88); }
+.wf-badge-fail { background: rgba(231,76,60,0.15); color: #E74C3C; }
+.wf-badge-muted { background: rgba(138,133,120,0.1); color: var(--text-dim); }
+
+@keyframes wf-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.6; } }
+
+/* Active workflow list */
+.wf-active-list { display: flex; flex-direction: column; gap: 6px; }
+.wf-active-card {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 14px; border-radius: 6px; background: var(--bg-secondary);
+  border: 1px solid var(--border); cursor: pointer; transition: background 120ms;
+}
+.wf-active-card:hover { background: var(--bg-muted, rgba(201,168,76,0.04)); }
+.wf-active-name { font-size: 13px; font-weight: 500; color: var(--text-primary); }
+.wf-active-meta { font-size: 11px; color: var(--text-dim); display: flex; gap: 12px; }
+
+/* ─── Detail View ─── */
+
+.wf-detail-header { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+.wf-detail-title { font-size: 16px; font-weight: 600; margin: 0; color: var(--text-primary); }
+.wf-detail-meta { display: flex; gap: 12px; font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.wf-detail-actions { display: flex; gap: 6px; }
+.wf-detail-error { padding: 8px 12px; border-radius: 6px; background: rgba(231,76,60,0.08); color: #E74C3C; font-size: 12px; margin-bottom: 12px; }
+
+/* Pipeline steps */
+.wf-pipeline { display: flex; flex-direction: column; gap: 0; }
+
+.wf-step {
+  display: flex; gap: 12px; align-items: flex-start; padding: 12px;
+  border-radius: 8px; border: 1px solid var(--border); background: var(--bg-secondary);
+}
+.wf-step-running { border-color: var(--cyan, #00e5ff); background: rgba(0,229,255,0.03); }
+.wf-step-succeeded { opacity: 0.85; }
+.wf-step-failed { border-color: #E74C3C; background: rgba(231,76,60,0.03); }
+
+.wf-step-icon { font-size: 18px; min-width: 24px; text-align: center; padding-top: 2px; }
+.wf-step-body { flex: 1; min-width: 0; }
+.wf-step-header { display: flex; align-items: center; gap: 8px; }
+.wf-step-name { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+.wf-step-agent { font-size: 11px; color: var(--text-muted); background: var(--bg-muted, rgba(0,0,0,0.1)); padding: 1px 6px; border-radius: 3px; }
+.wf-step-dur { font-size: 11px; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; }
+.wf-step-dep { font-size: 10px; color: var(--text-dim); margin-top: 2px; }
+.wf-step-output { font-size: 11px; color: var(--text-secondary); margin-top: 4px; line-height: 1.4; }
+.wf-step-error { font-size: 11px; color: #E74C3C; margin-top: 4px; }
+.wf-step-actions { display: flex; align-items: center; }
+
+.wf-step-connector { width: 2px; height: 12px; background: var(--border); margin-left: 23px; }
+
+/* Light theme overrides */
+[data-theme="light"] .wf-card { background: #fff; border-color: #e0ddd5; }
+[data-theme="light"] .wf-card:hover { border-color: #C9A84C; }
+[data-theme="light"] .wf-active-card { background: #fff; border-color: #e0ddd5; }
+[data-theme="light"] .wf-step { background: #fff; border-color: #e0ddd5; }
+[data-theme="light"] .wf-step-running { background: rgba(0,122,204,0.03); border-color: #007acc; }
+[data-theme="light"] .wf-badge-running { color: #007acc; background: rgba(0,122,204,0.1); }

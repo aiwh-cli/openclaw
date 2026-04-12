@@ -27,8 +27,12 @@ export class NotifDropdown extends LitElement {
     .notif-item:hover { background: rgba(201,168,76,0.04); }
     .notif-item.unread { border-left: 2px solid var(--magenta, #C9A84C); }
     .notif-item.read { opacity: 0.6; }
-    .notif-item.priority-high .notif-title { color: var(--critical, #E74C3C); }
-    .notif-item.priority-urgent .notif-title { color: var(--critical, #E74C3C); font-weight: 600; }
+    .notif-item.priority-high { border-left: 3px solid #E74C3C; }
+    .notif-item.priority-high .notif-title { color: #E74C3C; font-weight: 500; }
+    .notif-item.priority-high.read .notif-title { color: #E74C3C; }
+    .notif-item.priority-high.read { opacity: 0.75; }
+    .notif-item.priority-urgent { border-left: 3px solid #E74C3C; background: rgba(231,76,60,0.06); }
+    .notif-item.priority-urgent .notif-title { color: #E74C3C; font-weight: 600; }
 
     .notif-title {
       font-size: 13px; font-weight: 500; color: var(--text-primary, #F5EDD6);

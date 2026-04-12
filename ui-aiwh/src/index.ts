@@ -13,8 +13,14 @@ export { TrashView } from "./components/trash-view.js";
 export { DebugView } from "./components/debug-view.js";
 export { OverviewView } from "./components/overview-view.js";
 export { CostsView } from "./components/costs-view.js";
-import "./components/schedule-script-cron.js"; // side-effect: exposes window globals for schedule-crons.js
-import "./components/schedule-templates.js"; // side-effect: exposes window globals for schedule-crons.js
+import "./components/schedule-cron-picker.js"; // side-effect: cron picker widget + parsing utilities (shared)
+import "./components/schedule-cron-views.js"; // side-effect: calendar + list rendering for schedule view
+import "./components/schedule-cron-detail.js"; // side-effect: detail modal + run history for schedule view
+import "./components/schedule-cron-crud.js"; // side-effect: orchestrator + agent cron CRUD + _schedCache
+import "./components/schedule-script-cron.js"; // side-effect: script cron CRUD modals
+import "./components/schedule-templates.js"; // side-effect: template catalogue modal
+import "./components/tasks-crud.js"; // side-effect: task create/edit forms, file browser, project CRUD
+import "./components/tasks-view.js"; // side-effect: kanban board, drag-drop, dispatch, task actions
 import "./components/channels-config-view.js"; // side-effect: exposes openChannelSettings, saveChannelSettings, addChip
 import "./components/channels-setup-view.js"; // side-effect: exposes showChannelPicker, setup wizards
 import "./components/team-file-editor.js"; // side-effect: exposes openFileEditor, saveFileEditor
@@ -22,11 +28,16 @@ import "./components/team-detail-view.js"; // side-effect: exposes openAgentDeta
 import "./components/knowledge-view.js"; // side-effect: exposes loadKnowledge + entry management
 import "./components/config-view.js"; // side-effect: exposes initConfig, saveBudget, etc.
 import "./components/config-providers.js"; // side-effect: exposes renderAIProviders, key modals, Codex OAuth
+import "./components/workflow-catalogue.js"; // side-effect: exposes initWorkflows, activateWorkflow, runWorkflowNow
+import "./components/workflow-detail.js"; // side-effect: exposes showWorkflowDetail, cancelWf, retryWf, editWorkflowStep
 export { SecurityAuditTab } from "./components/security-audit-tab.js";
 export { SecurityTrashTab } from "./components/security-trash-tab.js";
 export { NotifDropdown } from "./components/notif-dropdown.js";
 export { ExecApprovalsPanel } from "./components/exec-approvals-panel.js";
 export { TeamAccessPanel } from "./components/team-access-panel.js";
+export { UserManagement } from "./components/user-management.js";
+export { PinLockPanel } from "./components/pin-lock-panel.js";
+export { RbacPolicyEditor } from "./components/rbac-policy-editor.js";
 export { TeamOrgChart } from "./components/team-org-chart.js";
 export { SocialUploadModal } from "./components/social-upload-modal.js";
 export { SocialHub } from "./components/social-hub.js";
@@ -45,6 +56,8 @@ export { ReviewAssets } from "./components/review-assets.js";
 export { ReviewFinal } from "./components/review-final.js";
 export { SettingsPillarsEditor } from "./components/settings-pillars-editor.js";
 export { SettingsProviderPicker } from "./components/settings-provider-picker.js";
+export { AuditTrailView } from "./components/audit-trail-view.js";
+export { ConnectorsView } from "./components/connectors-view.js";
 
 // Theme Z: Chat system (OpenClaw native + AIWH host)
 export { AiwhChatHost } from "./aiwh/aiwh-chat-host.js";

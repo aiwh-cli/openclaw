@@ -59,32 +59,53 @@ function renderNotificationRouting(routing: any, chStatus: any) {
   let channels = Object.keys(chStatus.chat || {});
   if (!channels.length) { channels = ['discord', 'slack', 'telegram', 'whatsapp']; }
 
+  const selStyle = 'width:120px;padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary)';
+  const inputStyle = 'width:170px;padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary)';
+  const btnTestStyle = 'padding:2px 8px;font-size:11px;border-radius:4px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-secondary);cursor:pointer';
+
   const rows = NOTIF_CATEGORIES.map(cat => {
     const r = routing[cat.id] || {};
-    const opts = channels.map(ch => `<option value="${ch}" ${r.channel === ch ? 'selected' : ''}>${ch.charAt(0).toUpperCase() + ch.slice(1)}</option>`).join('');
-    return `<div class="config-row" style="display:flex;gap:12px;align-items:center">
+    const opts = channels.map(ch => `<option value="${escHtml(ch)}" ${r.channel === ch ? 'selected' : ''}>${ch.charAt(0).toUpperCase() + ch.slice(1)}</option>`).join('');
+    return `<div class="config-row" style="display:flex;gap:10px;align-items:center">
       <div style="flex:1"><label style="font-weight:500">${cat.label}</label><small style="display:block;color:var(--text-muted)">${cat.desc}</small></div>
-      <select class="notif-channel" data-cat="${cat.id}" style="width:120px;padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary)"><option value="">None</option>${opts}</select>
-      <input class="notif-target" data-cat="${cat.id}" type="text" placeholder="Channel/group ID" value="${r.target || ''}" style="width:200px;padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary)">
+      <select class="notif-channel" data-cat="${cat.id}" style="${selStyle}"><option value="">None</option>${opts}</select>
+      <input class="notif-target" data-cat="${cat.id}" type="text" placeholder="Channel/group ID" value="${escHtml(r.target || '')}" style="${inputStyle}">
+      <button style="${btnTestStyle}" onclick="testNotification('${cat.id}')" title="Send a test message">Test</button>
     </div>`;
   }).join('');
 
-  const helpByChannel: Record<string, string> = {
-    discord: 'Right-click a Discord channel &rarr; Copy Channel ID (enable Developer Mode)',
-    slack: 'Open a Slack channel &rarr; click channel name &rarr; copy Channel ID at bottom',
-    telegram: 'Send a message in your group, then visit api.telegram.org/bot&lt;TOKEN&gt;/getUpdates',
-    whatsapp: 'Use your phone number in international format, e.g. +61451932232',
-  };
-  const helpHtml = channels.map(ch => `<li><strong>${ch.charAt(0).toUpperCase() + ch.slice(1)}:</strong> ${helpByChannel[ch] || 'Check platform docs'}</li>`).join('');
+  // Failover row
+  const fo = routing.failover || {};
+  const foOpts = channels.map(ch => `<option value="${escHtml(ch)}" ${fo.channel === ch ? 'selected' : ''}>${ch.charAt(0).toUpperCase() + ch.slice(1)}</option>`).join('');
+  const failoverRow = `<div class="config-row" style="display:flex;gap:10px;align-items:center;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
+    <div style="flex:1"><label style="font-weight:500">Failover Channel</label><small style="display:block;color:var(--text-muted)">Backup if primary channel is unreachable</small></div>
+    <select class="notif-channel" data-cat="failover" style="${selStyle}"><option value="">None</option>${foOpts}</select>
+    <input class="notif-target" data-cat="failover" type="text" placeholder="Backup channel/group ID" value="${escHtml(fo.target || '')}" style="${inputStyle}">
+    <button style="${btnTestStyle}" onclick="testNotification('failover')" title="Test failover delivery">Test</button>
+  </div>
+  <div style="margin-top:6px;padding:8px 12px;background:var(--bg-muted, rgba(201,168,76,0.04));border-radius:6px;font-size:12px;color:var(--text-muted)">
+    <strong style="color:var(--text-secondary)">Where do I find the channel ID?</strong>
+    <ul style="margin:4px 0 0 16px;padding:0;line-height:1.7">
+      <li><strong>Discord:</strong> Open Settings &rarr; App Settings &rarr; Advanced &rarr; turn on Developer Mode. Then right-click any channel &rarr; Copy Channel ID.</li>
+      <li><strong>Telegram:</strong> Add <em>@raw_data_bot</em> to your group, it will show the group ID. Or ask Branson to look it up for you.</li>
+      <li><strong>Slack:</strong> Click the channel name at the top &rarr; scroll to the bottom of the popup &rarr; copy the Channel ID.</li>
+      <li><strong>WhatsApp:</strong> Use your phone number in international format (e.g. +61451932232).</li>
+    </ul>
+    <p style="margin:4px 0 0;font-style:italic">Tip: Click "Test" next to any row to check it&rsquo;s working before you save.</p>
+  </div>`;
 
   el.innerHTML = `<div class="config-section">
     <h3 class="config-section-title">Notification Routing</h3>
-    <p style="color:var(--text-muted);font-size:13px;margin-bottom:12px">Where your AI team sends alerts and reports.</p>
+    <p style="color:var(--text-muted);font-size:13px;margin-bottom:12px">Where your AI team sends alerts and reports. Click "Test" to verify each channel works.</p>
     ${rows}
-    <details style="margin-top:12px;font-size:12px;color:var(--text-muted)"><summary style="cursor:pointer;font-weight:500;color:var(--text-secondary)">How do I find the channel/group ID?</summary><ul style="margin:8px 0 0 16px;line-height:1.8">${helpHtml}</ul></details>
+    ${failoverRow}
+    <div id="delivery-health" style="margin-top:10px;font-size:12px;color:var(--text-muted)"></div>
     <button class="btn btn-primary btn-sm" style="margin-top:12px" onclick="saveNotificationRouting()">Save Routing</button>
     <span id="notif-save-status" style="margin-left:8px;font-size:13px"></span>
   </div>`;
+
+  // Load delivery queue health
+  loadDeliveryHealth();
 }
 
 function renderConfigSubs(subs: any[]) {
@@ -155,6 +176,31 @@ async function saveNotificationRouting() {
   setTimeout(() => { if (status) { status.textContent = ''; } }, 5000);
 }
 
+async function testNotification(category: string) {
+  try {
+    await api('/notification-routing/test', { method: 'POST', body: { category } });
+    showToast(`Test notification sent to ${category}`);
+  } catch (e: any) {
+    showToast(`Test failed: ${e.message}`, 'error');
+  }
+}
+
+async function loadDeliveryHealth() {
+  const el = document.getElementById('delivery-health');
+  if (!el) { return; }
+  try {
+    const status = await api('/delivery-queue/status');
+    const parts: string[] = [];
+    if (status.pending > 0) { parts.push(`${status.pending} pending`); }
+    if (status.failed > 0) { parts.push(`<span style="color:var(--critical)">${status.failed} failed</span>`); }
+    el.innerHTML = parts.length
+      ? `Delivery Queue: ${parts.join(', ')}`
+      : '<span style="color:var(--success)">Delivery Queue: all clear</span>';
+  } catch {
+    el.textContent = '';
+  }
+}
+
 function togglePwVis(btn: HTMLButtonElement) {
   const input = btn.previousElementSibling as HTMLInputElement;
   if (!input) { return; }
@@ -204,6 +250,8 @@ async function doLogout() {
 (window as any).saveViewSettings = saveViewSettings;
 (window as any).updateSubCost = updateSubCost;
 (window as any).saveNotificationRouting = saveNotificationRouting;
+(window as any).testNotification = testNotification;
+(window as any).loadDeliveryHealth = loadDeliveryHealth;
 (window as any).togglePwVis = togglePwVis;
 (window as any).updatePwMatch = updatePwMatch;
 (window as any).updatePwStrength = updatePwStrength;

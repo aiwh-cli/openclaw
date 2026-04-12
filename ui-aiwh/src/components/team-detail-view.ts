@@ -112,6 +112,7 @@ async function openAgentDetail(agentId: string) {
   const recentRuns = agent.runs?.slice(0, 5) || [];
   const files = agent.workspaceFiles || [];
   const avatarUrl = agent.avatar_url || '';
+  const isClientAgent = agent.source === 'client';
   const avatarInner = avatarUrl
     ? `<img src="${escHtml(avatarUrl)}" alt="" class="detail-avatar-img">`
     : '<svg width="28" height="28" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="6" r="3" stroke="currentColor" stroke-width="1.2" opacity="0.4"/><path d="M2.5 14c0-3 2.5-5.5 5.5-5.5s5.5 2.5 5.5 5.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity="0.4"/></svg>';
@@ -152,10 +153,11 @@ async function openAgentDetail(agentId: string) {
       <div class="detail-label">Agent Configuration</div>
       <div class="detail-config-list">
         ${files.filter((f: any) => !f.isDir && !(FILE_META[f.name] as any)?.hidden).map((f: any) => {
-          const meta = FILE_META[f.name] || { label: f.name, desc: 'Agent file' };
-          const isRO = (meta as any).readOnly;
+          let meta = FILE_META[f.name] || { label: f.name, desc: 'Agent file' };
+          if (isClientAgent && f.name === 'CORE.md') meta = { label: 'Engine (Customisable)', desc: 'Core instructions for this agent — edit to change capabilities and behaviour' };
+          const isRO = (isClientAgent && f.name === 'CORE.md') ? false : (meta as any).readOnly;
           const lock = isRO ? '<span class="config-file-lock" title="Read-only — updated automatically">&#128274;</span>' : '';
-          return `<button class="config-file-row ${isRO ? 'config-file-readonly' : ''}" onclick="openFileEditor('${escHtml(f.path)}', '${escHtml(f.name)}')">
+          return `<button class="config-file-row ${isRO ? 'config-file-readonly' : ''}" onclick="openFileEditor('${escHtml(f.path)}', '${escHtml(f.name)}', {isClientAgent: ${isClientAgent}})">
             <div class="config-file-icon"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M4 2h6l4 4v8a1 1 0 01-1 1H4a1 1 0 01-1-1V3a1 1 0 011-1z" stroke="currentColor" stroke-width="1.2"/><path d="M10 2v4h4" stroke="currentColor" stroke-width="1.2"/></svg></div>
             <div class="config-file-info"><div class="config-file-name">${escHtml(meta.label)}${lock}</div><div class="config-file-desc">${escHtml(meta.desc)}</div></div>
             <div class="config-file-arrow"><svg width="10" height="10" viewBox="0 0 16 16" fill="none"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>

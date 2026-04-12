@@ -9,16 +9,15 @@ const escHtml = (window as any).escHtml as (s: string) => string;
 
 const FILE_META: Record<string, { label: string; desc: string; readOnly?: boolean }> = {
   'CORE.md':       { label: 'Engine (Product Core)',             desc: 'Core product instructions — read-only, updated automatically', readOnly: true },
-  'SOUL.md':       { label: 'Your Vision',                      desc: 'Your custom instructions, voice, and behavior — safe to edit' },
+  'SOUL.md':       { label: 'Personality',                       desc: 'This agent\'s voice, tone, and behavior — customise to match your brand' },
   'MEMORY.md':     { label: 'Long-term Memory', desc: 'Curated knowledge that persists across sessions' },
   'AGENTS.md':     { label: 'Instructions',   desc: 'Operating rules, workflows, and delegation patterns' },
   'IDENTITY.md':   { label: 'Identity',       desc: 'Name, role, and how the agent presents itself' },
   'USER.md':       { label: 'User Profile',   desc: 'Who the agent is talking to — your preferences' },
   'TOOLS.md':      { label: 'Tools & Skills', desc: 'Available tools, scripts, and API access notes' },
-  'BOOTSTRAP.md':  { label: 'Startup Rules',  desc: 'First-run checklist executed on every new session' },
+  'BOOTSTRAP.md':  { label: 'Safety Rules (Product)',  desc: 'Hard limits and safety rails — read-only, updated automatically', readOnly: true },
   'HEARTBEAT.md':  { label: 'Heartbeat',      desc: 'Periodic check-in tasks the agent runs automatically' },
-  'HARD-LIMITS.md':{ label: 'Safety Rules',   desc: 'Non-negotiable boundaries and restrictions' },
-  'CONTEXT.md':    { label: 'Context Guide',  desc: 'What the agent should know about the current project' },
+  'HARD-LIMITS.md':{ label: 'Freedom & Limits', desc: 'Controls what this agent can and cannot do — customise to your comfort level' },
 };
 
 export { FILE_META };
@@ -58,9 +57,10 @@ function _confirmFileChange(label: string): Promise<boolean> {
   });
 }
 
-export async function openFileEditor(filePath: string, fileName: string) {
+export async function openFileEditor(filePath: string, fileName: string, opts?: { isClientAgent?: boolean }) {
   const meta = FILE_META[fileName] || { label: fileName, desc: 'Agent file' };
-  const isReadOnly = (meta as any).readOnly;
+  // Client agents can edit CORE.md (it's their customisation). BOOTSTRAP.md stays locked for all.
+  const isReadOnly = (opts?.isClientAgent && fileName === 'CORE.md') ? false : (meta as any).readOnly;
   const modal = document.getElementById('modal-content');
   const overlay = document.getElementById('modal-overlay');
   if (!modal || !overlay) { return; }
@@ -137,6 +137,6 @@ export async function saveFileEditor(filePath: string) {
   }
 }
 
-// Expose on window
+// Expose on window — openFileEditor(path, name, {isClientAgent})
 (window as any).openFileEditor = openFileEditor;
 (window as any).saveFileEditor = saveFileEditor;

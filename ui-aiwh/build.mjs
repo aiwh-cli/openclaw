@@ -27,8 +27,8 @@ const JS_MAP = {
   // 'views/overview.js' — removed, migrated to <overview-view> Lit component
   // 'views/team.js' — removed, migrated to <team-org-chart> Lit component
   // 'views/team-detail.js' — removed, migrated to team-detail-view.ts + team-file-editor.ts in Lit bundle
-  'views/tasks.js':             'views/tasks.js',
-  'views/schedule-crons.js':    'views/schedule-crons.js',
+  // 'views/tasks.js' — removed, migrated to tasks-crud.ts + tasks-view.ts in Lit bundle
+  // 'views/schedule-crons.js' — removed, migrated to schedule-cron-{picker,views,detail,crud}.ts in Lit bundle
   // 'views/schedule-scripts.js' — removed, migrated to schedule-script-cron.ts in Lit bundle
   // 'views/schedule-templates.js' — removed, migrated to schedule-templates.ts in Lit bundle
   // 'views/knowledge.js' — removed, migrated to knowledge-view.ts + knowledge-entries.ts in Lit bundle
@@ -70,6 +70,8 @@ const CSS_MAP = {
   'openclaw-theme-map.css': 'openclaw-theme-map.css',
   'production.css':         'production.css',
   'chat-media.css':         'chat-media.css',
+  'workflow.css':           'workflow.css',
+  'connectors.css':         'connectors.css',
 };
 
 const TERSER_OPTIONS = {

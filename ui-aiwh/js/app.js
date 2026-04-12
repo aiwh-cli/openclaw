@@ -2,7 +2,7 @@
 // Vanilla JS, no build step. Delegates to /views/*.js modules.
 
 const socket = io();
-let currentView = 'chat';
+let currentView = localStorage.getItem('aiwh_view') || 'chat';
 
 // ─── Shared Helpers ──────────────────────────────────────────
 
@@ -218,8 +218,8 @@ document.addEventListener('DOMContentLoaded', () => {
 const VIEW_INIT = {
   overview: () => { const el = document.querySelector('overview-view'); if (el) {el.load();} },
   team:     () => { /* <team-org-chart> Lit component self-initializes via connectedCallback */ },
-  tasks:    initTasks,
-  schedule: initSchedule,
+  tasks:    () => { if (typeof initTasks === 'function') { initTasks(); } },
+  schedule: () => { if (typeof initSchedule === 'function') { initSchedule(); } },
   social:   () => { /* social-hub manages its own loading */ },
   costs:    () => { const el = document.querySelector('costs-view'); if (el) {el.load();} },
   chat:     () => { /* Lit sidebar + chat-host self-initialize via connectedCallback */ },
@@ -230,12 +230,15 @@ const VIEW_INIT = {
   channels: () => { /* <channel-panel> Lit component self-initializes via connectedCallback */ },
   security: () => { const el = document.querySelector('security-panel'); if (el) {el.load();} },
   config:   () => { if (typeof initConfig === 'function') {initConfig();} },
+  connectors: () => { const el = document.querySelector('connectors-view'); if (el) {el.load();} },
   knowledge: () => { if (typeof loadKnowledge === 'function') {loadKnowledge();} },
+  workflows: () => { if (typeof initWorkflows === 'function') {initWorkflows();} },
 };
 
 function switchView(view) {
   if (currentView === view) {return;}
   currentView = view;
+  try { localStorage.setItem('aiwh_view', view); } catch {}
 
   // Update sections
   document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + view));
@@ -422,14 +425,15 @@ function closeDashDialog(value) {
 // ─── Socket.io Events ────────────────────────────────────────
 
 socket.on('refresh', () => {
-  // Skip auto-refresh for views that manage their own state (channels, chat, production)
-  const skipAutoRefresh = ['channels', 'chat', 'config', 'knowledge', 'social-strategy', 'social'];
-  if (!skipAutoRefresh.includes(currentView) && VIEW_INIT[currentView]) {VIEW_INIT[currentView]();}
+  // Only update top bar stats on periodic refresh.
+  // Views manage their own data lifecycle — re-calling VIEW_INIT every 30s
+  // causes scroll-to-top and visual jank. Views load on switchView() or
+  // via specific socket events (task_updated, cinematic_updated, etc.).
   updateTopBarStats();
 });
 
 socket.on('task_updated', () => {
-  if (currentView === 'tasks') {loadTasks();}
+  if (currentView === 'tasks' && typeof loadTasks === 'function') {loadTasks();}
   if (currentView === 'overview') {refreshOverview();}
   updateTopBarStats();
 });
@@ -516,8 +520,15 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btn) {btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M13.5 8.5a5.5 5.5 0 01-6-6 5.5 5.5 0 106 6z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>';}
   }
 
-  // Load initial view — initChat directly since currentView already === 'chat'
-  if (typeof initChat === 'function') {initChat();}
+  // Load initial view — restore last view or default to chat
+  if (currentView !== 'chat') {
+    // Activate the saved view's section and init it
+    document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + currentView));
+    if (typeof updateSidebarActive === 'function') {updateSidebarActive(currentView);}
+    if (VIEW_INIT[currentView]) {VIEW_INIT[currentView]();}
+  } else {
+    if (typeof initChat === 'function') {initChat();}
+  }
 
   // Periodic notifications refresh
   setInterval(async () => {
