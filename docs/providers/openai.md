@@ -3,6 +3,7 @@ summary: "Use OpenAI via API keys or Codex subscription in OpenClaw"
 read_when:
   - You want to use OpenAI models in OpenClaw
   - You want Codex subscription auth instead of API keys
+  - You need stricter GPT-5 agent execution behavior
 title: "OpenAI"
 ---
 
@@ -28,6 +29,7 @@ Config key:
 Allowed values:
 
 - `"friendly"`: default; enable the OpenAI-specific overlay.
+- `"on"`: alias for `"friendly"`.
 - `"off"`: disable the overlay and use the base OpenClaw prompt only.
 
 Scope:
@@ -77,10 +79,19 @@ You can also set it directly with the config CLI:
 openclaw config set plugins.entries.openai.config.personality off
 ```
 
+OpenClaw normalizes this setting case-insensitively at runtime, so values like
+`"Off"` still disable the friendly overlay.
+
 ## Option A: OpenAI API key (OpenAI Platform)
 
 **Best for:** direct API access and usage-based billing.
 Get your API key from the OpenAI dashboard.
+
+Route summary:
+
+- `openai/gpt-5.4` = direct OpenAI Platform API route
+- Requires `OPENAI_API_KEY` (or equivalent OpenAI provider config)
+- In OpenClaw, ChatGPT/Codex sign-in is routed through `openai-codex/*`, not `openai/*`
 
 ### CLI setup
 
@@ -172,6 +183,12 @@ parameters, provider selection, and failover behavior.
 **Best for:** using ChatGPT/Codex subscription access instead of an API key.
 Codex cloud requires ChatGPT sign-in, while the Codex CLI supports ChatGPT or API key sign-in.
 
+Route summary:
+
+- `openai-codex/gpt-5.4` = ChatGPT/Codex OAuth route
+- Uses ChatGPT/Codex sign-in, not a direct OpenAI Platform API key
+- Provider-side limits for `openai-codex/*` can differ from the ChatGPT web/app experience
+
 ### CLI setup (Codex OAuth)
 
 ```bash
@@ -192,6 +209,10 @@ openclaw models auth login --provider openai-codex
 
 OpenAI's current Codex docs list `gpt-5.4` as the current Codex model. OpenClaw
 maps that to `openai-codex/gpt-5.4` for ChatGPT/Codex OAuth usage.
+
+This route is intentionally separate from `openai/gpt-5.4`. If you want the
+direct OpenAI Platform API path, use `openai/*` with an API key. If you want
+ChatGPT/Codex sign-in, use `openai-codex/*`.
 
 If onboarding reuses an existing Codex CLI login, those credentials stay
 managed by Codex CLI. On expiry, OpenClaw re-reads the external Codex source
@@ -456,6 +477,33 @@ behavior, but it does not receive the hidden OpenAI/Codex attribution headers.
 
 This preserves current native OpenAI Responses behavior without forcing older
 OpenAI-compatible shims onto third-party `/v1` backends.
+
+### Strict-agentic GPT mode
+
+For `openai/*` and `openai-codex/*` GPT-5-family runs, OpenClaw can use a
+stricter embedded Pi execution contract:
+
+```json5
+{
+  agents: {
+    defaults: {
+      embeddedPi: {
+        executionContract: "strict-agentic",
+      },
+    },
+  },
+}
+```
+
+With `strict-agentic`, OpenClaw no longer treats a plan-only assistant turn as
+successful progress when a concrete tool action is available. It retries the
+turn with an act-now steer, auto-enables the structured `update_plan` tool for
+substantial work, and surfaces an explicit blocked state if the model keeps
+planning without acting.
+
+The mode is scoped to OpenAI and OpenAI Codex GPT-5-family runs. Other providers
+and older model families keep the default embedded Pi behavior unless you opt
+them into other runtime settings.
 
 ### OpenAI Responses server-side compaction
 
