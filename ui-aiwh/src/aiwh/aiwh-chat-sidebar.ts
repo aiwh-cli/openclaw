@@ -36,6 +36,7 @@ export class AiwhChatSidebar extends LitElement {
   @state() private _agentsLoaded = false;
 
   private _refreshHandler = () => {
+    void this._loadAgents();
     void this._loadSessions();
   };
   private _modelUpdateHandler = ((e: CustomEvent<{ agentId: string; model: string }>) => {
@@ -90,10 +91,12 @@ export class AiwhChatSidebar extends LitElement {
 
   // ─── Agent Selection ─────────────────────────────────────
 
-  private _selectAgent(agentId: string) {
+  private _selectAgent(agentId: string, departmentId?: string) {
     this._agentId = agentId;
     this._sessionKey = `agent:${agentId}:main`;
-    document.dispatchEvent(new CustomEvent("aiwh-agent-switch", { detail: { agentId } }));
+    document.dispatchEvent(
+      new CustomEvent("aiwh-agent-switch", { detail: { agentId, departmentId } }),
+    );
     void this._loadSessions();
   }
 
@@ -188,11 +191,14 @@ export class AiwhChatSidebar extends LitElement {
       return nothing;
     }
 
+    const isFeatured = (a: AgentEntry) => a.id === "main" || a.id === "department-lead";
     const sorted = [...this._agents].toSorted((a, b) => {
-      if (a.id === "main") {
+      const af = isFeatured(a),
+        bf = isFeatured(b);
+      if (af && !bf) {
         return -1;
       }
-      if (b.id === "main") {
+      if (!af && bf) {
         return 1;
       }
       const aName = a.display_name || a.displayName || a.name || a.id;
@@ -200,15 +206,16 @@ export class AiwhChatSidebar extends LitElement {
       return aName.localeCompare(bName);
     });
 
-    const branson = sorted.find((a) => a.id === "main");
-    const others = sorted.filter((a) => a.id !== "main");
+    const featured = sorted.filter(isFeatured);
+    const others = sorted.filter((a) => !isFeatured(a));
+    const hasBranson = featured.some((a) => a.id === "main");
+    const notice = hasBranson
+      ? "Branson is the main orchestrator. He can delegate to all agents. Talk to him first unless you need a specific agent directly."
+      : "Delta is your department lead. Talk to Delta first — Delta will route your request to the right specialist in your department.";
 
     return html`
-      ${branson ? this._renderAgent(branson, true) : nothing}
-      <div class="chat-agent-notice">
-        Branson is the main orchestrator. He can delegate to all agents. Talk to him first unless
-        you need a specific agent directly.
-      </div>
+      ${featured.map((a) => this._renderAgent(a, true))}
+      <div class="chat-agent-notice">${notice}</div>
       <div class="chat-agent-divider">Other Agents</div>
       ${others.map((a) => this._renderAgent(a, false))}
     `;
@@ -229,7 +236,7 @@ export class AiwhChatSidebar extends LitElement {
           : ""}"
         title=${title}
         data-agent-id=${agent.id}
-        @click=${() => this._selectAgent(agent.id)}
+        @click=${() => this._selectAgent(agent.id, agent.departmentId)}
       >
         <span class="agent-orb orb-idle"></span>
         <span class="chat-agent-item-name">${displayName}</span>

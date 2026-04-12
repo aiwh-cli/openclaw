@@ -43,6 +43,10 @@ import {
 export class AiwhChatHost extends LitElement {
   @state() private _agentId = "main";
   @state() private _sessionKey = "agent:main:main";
+  @state() private _departmentId: string | null = null;
+  @state() private _userDepartments: string[] = [];
+  private _currentUserId: string | null = null;
+  private _currentUserRole: string | null = null;
   @state() private _messages: unknown[] = [];
   @state() private _stream: string | null = null;
   @state() private _streamStartedAt: number | null = null;
@@ -74,7 +78,7 @@ export class AiwhChatHost extends LitElement {
   private _toolStream: ToolStreamState = createToolStreamState();
 
   private _agentSwitchHandler = ((e: CustomEvent) => {
-    this._switchAgent(e.detail.agentId);
+    this._switchAgent(e.detail.agentId, e.detail.departmentId);
   }) as EventListener;
 
   private _sessionSwitchHandler = ((e: CustomEvent) => {
@@ -111,9 +115,40 @@ export class AiwhChatHost extends LitElement {
   } // light DOM for dashboard CSS
 
   private async _init() {
+    await this._applyRoleDefaults();
     await this._loadAgents();
     await Promise.all([this._loadSessions(), this._loadHistory(), this._loadModel()]);
     void this._checkConnection();
+  }
+
+  // AC.1 — team users default to department-lead instead of main (Branson).
+  // Owner/admin keep main as the default.
+  private async _applyRoleDefaults() {
+    try {
+      const res = await fetch("/api/auth/status", { credentials: "same-origin" });
+      if (!res.ok) {
+        return;
+      }
+      const status = await res.json();
+      const role = status?.user?.role;
+      const depts: string[] = Array.isArray(status?.user?.departments)
+        ? status.user.departments
+        : [];
+      this._userDepartments = depts;
+      this._currentUserId = status?.user?.userId || null;
+      this._currentUserRole = role || null;
+      if (role === "team") {
+        this._agentId = "department-lead";
+        this._departmentId = depts[0] || null;
+        if (this._departmentId) {
+          this._sessionKey = `agent:department-lead:user:${status.user.userId}:dept:${this._departmentId}:main`;
+        } else {
+          this._sessionKey = `agent:department-lead:main`;
+        }
+      }
+    } catch {
+      /* not logged in or auth endpoint unavailable — keep main default */
+    }
   }
 
   private async _loadAgents() {
@@ -261,6 +296,7 @@ export class AiwhChatHost extends LitElement {
             this._error = msg;
           },
         },
+        this._departmentId || undefined,
       );
       if (!result.ok) {
         this._error = result.error || "Could not connect to gateway";
@@ -300,11 +336,33 @@ export class AiwhChatHost extends LitElement {
     void this._loadSessions();
   }
 
-  private _switchAgent(agentId: string) {
+  private _switchAgent(agentId: string, departmentId?: string) {
     this._agentId = agentId;
-    this._sessionKey = `agent:${agentId}:main`;
-    const agent = this._agentsList?.agents?.find((a) => a.id === agentId);
-    this._assistantName = agent?.identity?.name || agent?.name || agentId;
+    // AC.1: department-lead sessions are per-user-per-department. If a departmentId is
+    // supplied (from a team user clicking a dept card) or one is already active, keep it.
+    if (agentId === "department-lead") {
+      const userId = this._currentUserId;
+      this._departmentId = departmentId || this._departmentId;
+      this._sessionKey =
+        userId && this._departmentId
+          ? `agent:department-lead:user:${userId}:dept:${this._departmentId}:main`
+          : `agent:department-lead:main`;
+    } else {
+      this._departmentId = null;
+      this._sessionKey = `agent:${agentId}:main`;
+    }
+    const list = this._agentsList?.agents || [];
+    const agent =
+      list.find(
+        (a) =>
+          a.id === agentId &&
+          (!departmentId || (a as { departmentId?: string }).departmentId === departmentId),
+      ) || list.find((a) => a.id === agentId);
+    this._assistantName =
+      (agent as { displayName?: string })?.displayName ||
+      agent?.identity?.name ||
+      agent?.name ||
+      agentId;
     this._assistantAvatar = agent?.identity?.avatarUrl || null;
     this._messages = [];
     this._loading = true;

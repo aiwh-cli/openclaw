@@ -19,6 +19,7 @@ export interface AgentEntry {
   description?: string;
   role?: string;
   identity?: { name?: string; avatarUrl?: string };
+  departmentId?: string;
 }
 
 export interface AgentsList {
@@ -261,6 +262,7 @@ export async function sendChatStream(
   attachments: ChatAttachmentPayload[],
   signal: AbortSignal,
   callbacks: SseCallbacks,
+  departmentId?: string,
 ): Promise<{ ok: boolean; error?: string }> {
   const res = await fetch("/api/chat", {
     method: "POST",
@@ -269,6 +271,7 @@ export async function sendChatStream(
       message,
       agentId,
       sessionId: sessionKey,
+      departmentId,
       attachments: attachments.map((a) => ({
         type: "image",
         mimeType: a.mimeType,
