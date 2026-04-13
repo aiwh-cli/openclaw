@@ -23,6 +23,7 @@ import "./components/tasks-crud.js"; // side-effect: task create/edit forms, fil
 import "./components/tasks-view.js"; // side-effect: kanban board, drag-drop, dispatch, task actions
 import "./components/channels-config-view.js"; // side-effect: exposes openChannelSettings, saveChannelSettings, addChip
 import "./components/channels-setup-view.js"; // side-effect: exposes showChannelPicker, setup wizards
+export { ChannelGroupsManager } from "./components/channel-groups-manager.js";
 import "./components/team-file-editor.js"; // side-effect: exposes openFileEditor, saveFileEditor
 import "./components/team-detail-view.js"; // side-effect: exposes openAgentDetail, closeAgentDetail, etc.
 import "./components/knowledge-view.js"; // side-effect: exposes loadKnowledge + entry management

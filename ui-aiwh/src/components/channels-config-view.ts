@@ -78,10 +78,25 @@ function agentBindingsSection(channelId: string, agents: any[], boundAgents: str
 }
 
 function settingsActions(channelId: string) {
+  const hasGroups = ['whatsapp', 'discord', 'telegram', 'slack'].includes(channelId);
   return `<div class="ch-settings-actions">
     <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+    ${hasGroups ? `<button class="btn btn-ghost" onclick="openChannelGroupsManager('${channelId}')">Manage Groups</button>` : ''}
     <button class="btn btn-primary" onclick="saveChannelSettings('${channelId}')">Save Settings</button>
   </div>`;
+}
+
+function openChannelGroupsManager(channelId: string, accountId: string = 'default') {
+  const label = channelId.charAt(0).toUpperCase() + channelId.slice(1);
+  showModal(`
+    <div class="ch-settings">
+      <div class="ch-settings-header"><h3>${label} — Group Access</h3></div>
+      <channel-groups-manager channel="${channelId}" accountId="${accountId}"></channel-groups-manager>
+      <div class="ch-settings-actions">
+        <button class="btn btn-ghost" onclick="closeModal()">Close</button>
+      </div>
+    </div>
+  `, 'modal-wide');
 }
 
 function renderWhatsAppSettings(id: string, label: string, cfg: any, bindings: any[], agents: any[]) {
@@ -322,5 +337,6 @@ async function saveChannelSettings(channelId: string) {
 // Expose on window
 (window as any).openChannelSettings = openChannelSettings;
 (window as any).saveChannelSettings = saveChannelSettings;
+(window as any).openChannelGroupsManager = openChannelGroupsManager;
 (window as any).addChip = addChip;
 (window as any).getChipValues = getChipValues;
