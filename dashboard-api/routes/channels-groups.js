@@ -1,0 +1,219 @@
+// ─── Channel Groups Routes (Theme V.3) ──────────────────────
+// Per-group allowlist/config persistence. RBAC gated via global
+// `/api/channels` → `requireAction('manage_channels')` in server.js.
+//
+// Endpoints:
+//   GET    /api/channels/groups/config?channel=X&accountId=Y
+//   POST   /api/channels/groups/config   body: {channel, accountId?, groupId?, config?, defaults?}
+//   DELETE /api/channels/groups/config   body: {channel, accountId?, groupId}
+//
+// V.1 will add GET /api/channels/groups/list (gateway RPC proxy) in this same file.
+
+const { execFileSync } = require('child_process');
+const {
+  validateGroupConfig,
+  validateChannelGroupDefaults,
+  buildGroupKeyPath,
+  buildDefaultsKeyPath,
+  snapshotOpenclawJson,
+  restoreOpenclawJson,
+  requireChannel,
+  requireAccountId,
+  requireGroupId,
+  VALID_CHANNELS,
+} = require('../helpers/channels-config');
+
+const OPENCLAW_BIN = '/opt/homebrew/bin/openclaw';
+const OC_ENV = {
+  ...process.env,
+  OPENCLAW_STATE_DIR: '/opt/AIWH/.openclaw',
+  PATH: `/opt/homebrew/bin:/opt/homebrew/sbin:${process.env.PATH || '/usr/bin:/bin'}`,
+};
+
+function oc(argsArray, timeout = 10000) {
+  const out = execFileSync(OPENCLAW_BIN, argsArray, { timeout, env: OC_ENV, encoding: 'utf8' }).trim();
+  try { return JSON.parse(out); } catch { return out; }
+}
+
+function ocSafe(argsArray, timeout = 10000) {
+  try { return { ok: true, out: oc(argsArray, timeout) }; }
+  catch (e) { return { ok: false, err: e }; }
+}
+
+// ─── Gateway restart debounce ───────────────────────────────
+// Multiple sequential writes in a batch produce exactly one restart.
+let _restartTimer = null;
+function scheduleGatewayRestart() {
+  if (_restartTimer) return;
+  _restartTimer = setTimeout(() => {
+    _restartTimer = null;
+    ocSafe(['gateway', 'restart'], 20000);
+  }, 500);
+}
+
+// ─── Simple token-bucket rate limit per actor ───────────────
+// 30 writes / 60s. Prevents a malicious admin from restarting the gateway in a loop.
+const _buckets = new Map();
+const BUCKET_CAPACITY = 30;
+const BUCKET_REFILL_MS = 2000; // 1 token every 2s ≈ 30/min
+
+function actorKey(req) {
+  return req.user?.userId || req.user?.email || req.ip || 'anon';
+}
+
+function checkWriteRate(req) {
+  const key = actorKey(req);
+  const now = Date.now();
+  const b = _buckets.get(key) || { tokens: BUCKET_CAPACITY, last: now };
+  const refill = Math.floor((now - b.last) / BUCKET_REFILL_MS);
+  if (refill > 0) {
+    b.tokens = Math.min(BUCKET_CAPACITY, b.tokens + refill);
+    b.last = now;
+  }
+  if (b.tokens <= 0) {
+    _buckets.set(key, b);
+    return false;
+  }
+  b.tokens -= 1;
+  _buckets.set(key, b);
+  return true;
+}
+
+function setOne(path, value) {
+  // Value must be JSON for `config set` to parse consistently
+  oc(['config', 'set', path, JSON.stringify(value), '--json'], 10000);
+}
+
+function unsetOne(path) {
+  // Idempotent: "not found" is a success
+  const result = ocSafe(['config', 'unset', path], 10000);
+  if (!result.ok && !/not found/i.test(String(result.err?.message || ''))) {
+    throw result.err;
+  }
+}
+
+module.exports = (app, deps) => {
+  const { dashLog } = deps;
+
+  // ─── GET group config ─────────────────────────────────────
+  // Merges channel-level defaults + per-group map from openclaw.json.
+  // No gateway round-trip — reads the on-disk config directly.
+  app.get('/api/channels/groups/config', (req, res) => {
+    try {
+      const channel = req.query.channel;
+      requireChannel(channel);
+      const accountId = requireAccountId(req.query.accountId);
+
+      const cfg = deps.adapter.readConfig();
+      const channelRoot = cfg?.channels?.[channel];
+      if (!channelRoot) {
+        return res.json({ groupPolicy: 'open', groupAllowFrom: [], groups: {} });
+      }
+      const scope = accountId === 'default'
+        ? channelRoot
+        : (channelRoot.accounts?.[accountId] || {});
+
+      res.json({
+        groupPolicy: scope.groupPolicy || 'open',
+        groupAllowFrom: Array.isArray(scope.groupAllowFrom) ? scope.groupAllowFrom : [],
+        groups: (scope.groups && typeof scope.groups === 'object') ? scope.groups : {},
+      });
+    } catch (e) {
+      res.status(400).json({ error: e.message });
+    }
+  });
+
+  // ─── POST group config ────────────────────────────────────
+  // Body: {channel, accountId?, groupId?, config?, defaults?}
+  //   - defaults.{groupPolicy, groupAllowFrom} → channel-level
+  //   - groupId + config → per-group leaves
+  // Transactional: snapshot openclaw.json, apply all writes, restore on failure.
+  app.post('/api/channels/groups/config', (req, res) => {
+    if (!checkWriteRate(req)) {
+      return res.status(429).json({ error: 'rate limit exceeded (30 writes/min)' });
+    }
+    let snap = null;
+    try {
+      const { channel, accountId, groupId, config, defaults } = req.body || {};
+      requireChannel(channel);
+      const acct = requireAccountId(accountId);
+
+      if (!defaults && !groupId) {
+        return res.status(400).json({ error: 'defaults or groupId required' });
+      }
+
+      snap = snapshotOpenclawJson();
+
+      if (defaults && typeof defaults === 'object') {
+        const validated = validateChannelGroupDefaults(defaults);
+        for (const [k, v] of Object.entries(validated)) {
+          setOne(buildDefaultsKeyPath(channel, acct, k), v);
+        }
+      }
+
+      if (groupId) {
+        requireGroupId(groupId);
+        const validated = validateGroupConfig(config || {});
+        // If the caller sets any per-group field without explicit allowlisted=false,
+        // treat it as an allowlist entry (sets allowlisted=true).
+        if (validated.allowlisted === undefined && Object.keys(validated).length > 0) {
+          validated.allowlisted = true;
+        }
+        if (Object.keys(validated).length === 0) {
+          return res.status(400).json({ error: 'config object cannot be empty' });
+        }
+        for (const [k, v] of Object.entries(validated)) {
+          setOne(buildGroupKeyPath(channel, acct, groupId, k), v);
+        }
+      }
+
+      scheduleGatewayRestart();
+      dashLog(
+        'channels',
+        `group config write ${channel}${acct !== 'default' ? '/' + acct : ''} ${groupId || '(defaults)'}`
+      );
+      res.json({ ok: true });
+    } catch (e) {
+      if (snap) {
+        try {
+          restoreOpenclawJson(snap);
+          dashLog('channels', `group config rollback: ${e.message}`);
+        } catch (rollbackErr) {
+          dashLog('channels', `group config rollback FAILED: ${rollbackErr.message}`);
+        }
+      }
+      const status = /invalid|required|too long|disallowed|must be/.test(e.message) ? 400 : 500;
+      res.status(status).json({ error: e.message });
+    }
+  });
+
+  // ─── DELETE group config ──────────────────────────────────
+  // Removes a single group's config node. Idempotent.
+  app.delete('/api/channels/groups/config', (req, res) => {
+    if (!checkWriteRate(req)) {
+      return res.status(429).json({ error: 'rate limit exceeded (30 writes/min)' });
+    }
+    let snap = null;
+    try {
+      const { channel, accountId, groupId } = req.body || {};
+      requireChannel(channel);
+      const acct = requireAccountId(accountId);
+      requireGroupId(groupId);
+
+      snap = snapshotOpenclawJson();
+      unsetOne(buildGroupKeyPath(channel, acct, groupId, null));
+      scheduleGatewayRestart();
+      dashLog(
+        'channels',
+        `group deleted ${channel}${acct !== 'default' ? '/' + acct : ''} ${groupId}`
+      );
+      res.json({ ok: true });
+    } catch (e) {
+      if (snap) {
+        try { restoreOpenclawJson(snap); } catch { /* ignore */ }
+      }
+      const status = /invalid|required|too long|disallowed/.test(e.message) ? 400 : 500;
+      res.status(status).json({ error: e.message });
+    }
+  });
+};

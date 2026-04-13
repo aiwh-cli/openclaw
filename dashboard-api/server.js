@@ -460,6 +460,7 @@ require('./routes/costs')(app, deps);
 require('./routes/content')(app, deps);
 require('./routes/cinematic')(app, deps);
 require('./routes/channels')(app, deps);
+require('./routes/channels-groups')(app, deps);
 require('./routes/system')(app, deps);
 require('./routes/knowledge')(app, deps);
 require('./routes/security')(app);

@@ -2,6 +2,7 @@
 // Wraps `openclaw channels` CLI + gateway WS for dashboard channel management
 const { execFileSync } = require('child_process');
 const { client: gateway } = require('../gateway-ws');
+const { sanitizeConfigPath } = require('../helpers/channels-config');
 
 const OPENCLAW_BIN = '/opt/homebrew/bin/openclaw';
 const OC_ENV = { ...process.env, OPENCLAW_STATE_DIR: '/opt/AIWH/.openclaw', PATH: `/opt/homebrew/bin:/opt/homebrew/sbin:${process.env.PATH || '/usr/bin:/bin'}` };
@@ -238,12 +239,18 @@ module.exports = (app, deps) => {
       if (!path.startsWith('channels.') && !path.startsWith('agents.bindings')) {
         return res.status(400).json({ error: 'Only channels.* paths allowed' });
       }
-      const safePath = String(path).replace(/[^a-zA-Z0-9._-]/g, '');
+      // Widened allowlist (Theme V.3): survives bracket notation for keys that
+      // contain dots or @ (WhatsApp JIDs, Slack IDs). Still rejects .., null
+      // bytes, whitespace, and shell metacharacters.
+      const safePath = sanitizeConfigPath(String(path));
       const jsonVal = JSON.stringify(value);
       const result = oc(['config', 'set', safePath, jsonVal, '--json'], 10000);
       invalidateCaches();
       res.json({ ok: true, result });
-    } catch (e) { res.status(500).json({ error: e.message }); }
+    } catch (e) {
+      const status = /disallowed|null byte|\.\.|length/.test(e.message) ? 400 : 500;
+      res.status(status).json({ error: e.message });
+    }
   });
 
   // ─── Patch channel config (multiple fields) ────────────
