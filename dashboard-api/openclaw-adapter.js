@@ -79,6 +79,56 @@ function invalidateCCCache() {
   _deptCache = null;
 }
 
+/**
+ * Lightweight registered-agent ID set. Used by rbac.loadDepartments() to
+ * filter stale agent references out of client/config/departments.json.
+ * Source of truth: openclaw.json agents.list + product workspace scan + client/agents/.
+ * Deactivated/trashed client agents are excluded (they cannot be delegated to).
+ */
+function getRegisteredAgentIds() {
+  const ids = new Set();
+  const cfg = readConfig();
+  for (const a of (cfg?.agents?.list || [])) {
+    if (a?.id) ids.add(a.id);
+  }
+  for (const group of MODULE_GROUPS) {
+    const groupDir = path.join(MODULES_ROOT, group);
+    if (!fs.existsSync(groupDir)) continue;
+    try {
+      for (const entry of fs.readdirSync(groupDir, { withFileTypes: true })) {
+        if (!entry.isDirectory()) continue;
+        if (fs.existsSync(path.join(groupDir, entry.name, 'SOUL.md'))) ids.add(entry.name);
+      }
+    } catch {}
+  }
+  if (fs.existsSync(P.CLIENT_AGENTS_DIR)) {
+    try {
+      for (const entry of fs.readdirSync(P.CLIENT_AGENTS_DIR, { withFileTypes: true })) {
+        if (!entry.isDirectory()) continue;
+        const dir = path.join(P.CLIENT_AGENTS_DIR, entry.name);
+        if (fs.existsSync(path.join(dir, '.deactivated'))) continue;
+        if (fs.existsSync(path.join(dir, '.trashed'))) continue;
+        if (fs.existsSync(path.join(dir, 'SOUL.md')) || fs.existsSync(path.join(dir, 'CORE.md'))) {
+          ids.add(entry.name);
+        }
+      }
+    } catch {}
+  }
+  // Include CC catalogue agents (e.g. wcc-agent, health-tracker) — these are
+  // declared in command-centres.json without a workspace of their own.
+  try {
+    const cc = loadCommandCentres();
+    for (const def of Object.values(cc.command_centres || {})) {
+      for (const id of (def.agents || [])) ids.add(id);
+    }
+    for (const id of (cc.system_agents || [])) ids.add(id);
+  } catch {}
+  // department-lead is a synthetic RBAC orchestrator (see rbac.buildDeltaCardsForTeam)
+  // and is never in the registry — whitelist it so depts referencing it survive filtering.
+  ids.add('department-lead');
+  return ids;
+}
+
 // ─── Agent Discovery (dual source) ─────────────────────────
 
 function readConfig() {
@@ -450,6 +500,7 @@ function getDiskUsage() {
 
 module.exports = {
   readConfig,
+  getRegisteredAgentIds,
   discoverAgents,
   discoverSubAgents,
   getWorkspaceFiles,

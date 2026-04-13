@@ -5,6 +5,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { dashLog } = require('./activity');
 const CLIENT_ROOT = process.env.CLIENT_ROOT || '/opt/AIWH/client';
 const DEPTS_FILE = path.join(CLIENT_ROOT, 'config', 'departments.json');
 const POLICY_FILE = path.join(CLIENT_ROOT, 'config', 'rbac-policy.json');
@@ -17,10 +18,35 @@ let _policyCache = null, _policyCacheTime = 0;
 function loadDepartments() {
   const now = Date.now();
   if (_deptsCache && now - _deptsCacheTime < 60000) return _deptsCache;
-  try { _deptsCache = JSON.parse(fs.readFileSync(DEPTS_FILE, 'utf8')); }
-  catch { _deptsCache = { departments: [] }; }
+  let raw;
+  try { raw = JSON.parse(fs.readFileSync(DEPTS_FILE, 'utf8')); }
+  catch { raw = { departments: [] }; }
+  _deptsCache = filterStaleAgents(raw);
   _deptsCacheTime = now;
   return _deptsCache;
+}
+
+// AC.1b: strip dept agent IDs that no longer exist in the live registry.
+// Prevents Delta hallucinating capabilities from ghost agents (prior incident:
+// "lead-qualifier" ghost). dashLog one line per drop so it's traceable.
+function filterStaleAgents(deptsDoc) {
+  if (!deptsDoc?.departments?.length) return deptsDoc || { departments: [] };
+  let registered;
+  try {
+    registered = require('../openclaw-adapter').getRegisteredAgentIds();
+  } catch {
+    return deptsDoc;
+  }
+  return { ...deptsDoc, departments: deptsDoc.departments.map(d => {
+    const kept = []; const dropped = [];
+    for (const id of (d.agents || [])) {
+      if (registered.has(id)) kept.push(id); else dropped.push(id);
+    }
+    for (const id of dropped) {
+      dashLog('rbac', `filtered stale agent '${id}' from ${d.id}`);
+    }
+    return { ...d, agents: kept };
+  }) };
 }
 
 function loadPolicy() {
@@ -249,4 +275,5 @@ module.exports = {
   getAccessibleAgents, getAccessibleDepartments, canAccessAgent, canAccessDepartment,
   clearDepartmentsCache, clearPolicyCache,
   hasAction, hasView, getPermissionsForRole, loadPolicy,
+  loadDepartments,
 };

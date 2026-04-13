@@ -5,7 +5,7 @@
 const fs = require('fs');
 const P = require('../helpers/paths');
 const { logAudit, resolveActor } = require('../helpers/audit');
-const { clearDepartmentsCache } = require('../helpers/rbac');
+const { clearDepartmentsCache, loadDepartments: loadDepartmentsFiltered } = require('../helpers/rbac');
 
 const VALID_DEPT_ID = /^[a-z][a-z0-9-]{0,30}$/;
 const VALID_AGENT_ID = /^[a-z][a-z0-9-]{1,30}[a-z0-9]$/;
@@ -26,9 +26,9 @@ function writeDepartments(data) {
 module.exports = function (app, deps) {
   const { db } = deps;
 
-  // GET /api/departments — list all departments
+  // GET /api/departments — list all departments (AC.1b: stale-agent filtered)
   app.get('/api/departments', (req, res) => {
-    const data = readDepartments();
+    const data = loadDepartmentsFiltered();
     res.json({ departments: data.departments || [] });
   });
 
