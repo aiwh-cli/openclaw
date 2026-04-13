@@ -9,7 +9,10 @@ const P = require('./paths');
 // All user input is validated per-field first; this is a final safety net
 // against programming errors in path construction. It MUST survive bracket
 // notation for keys that contain dots or @ (WhatsApp JIDs, Slack IDs).
-const PATH_ALLOWED_RE = /^[A-Za-z0-9._\-:\[\]@="]+$/;
+// Note: openclaw's `config set` treats `foo[bar.baz]` as the single key
+// `bar.baz`; quoting (`foo["bar.baz"]`) causes the quotes to become part of
+// the literal key name, so we never use quotes inside brackets.
+const PATH_ALLOWED_RE = /^[A-Za-z0-9._\-:\[\]@=]+$/;
 
 function sanitizeConfigPath(input) {
   if (typeof input !== 'string') throw new Error('path must be a string');
@@ -61,39 +64,60 @@ function requireGroupId(groupId) {
   return groupId;
 }
 
-function validateGroupConfig(config) {
-  if (!config || typeof config !== 'object') throw new Error('config object required');
-  const out = {};
-  if (config.name !== undefined) {
-    if (typeof config.name !== 'string' || config.name.length > LIMITS.NAME_MAX) {
-      throw new Error('name invalid');
+// Upstream WhatsApp zod schema (`zod-schema.providers-whatsapp.ts`) only allows
+// {requireMention, tools, toolsBySender} inside `channels.whatsapp.groups[<jid>]`.
+// Access control is channel-level only (groupPolicy + groupAllowFrom as a *sender*
+// allowlist, not a group-JID allowlist). Telegram is the opposite — per-group
+// groupPolicy and allowFrom are the access surface there.
+function validateAllowFromArray(value, field) {
+  if (!Array.isArray(value)) throw new Error(`${field} must be array`);
+  if (value.length > LIMITS.ALLOW_FROM_MAX_ENTRIES) throw new Error(`${field} too large`);
+  return value.map((v) => {
+    if (typeof v !== 'string' || v.length === 0 || v.length > LIMITS.ALLOW_FROM_ENTRY_MAX) {
+      throw new Error(`${field} entry invalid`);
     }
-    out.name = config.name;
+    return v;
+  });
+}
+
+function validateGroupPolicyValue(value) {
+  if (!['open', 'allowlist', 'disabled'].includes(value)) {
+    throw new Error('groupPolicy must be open, allowlist, or disabled');
   }
+  return value;
+}
+
+function validateGroupConfig(channel, config) {
+  if (!config || typeof config !== 'object') throw new Error('config object required');
+  requireChannel(channel);
+  const out = {};
   if (config.requireMention !== undefined) {
     if (typeof config.requireMention !== 'boolean') throw new Error('requireMention must be boolean');
     out.requireMention = config.requireMention;
   }
-  if (config.allowFrom !== undefined) {
-    if (!Array.isArray(config.allowFrom)) throw new Error('allowFrom must be array');
-    if (config.allowFrom.length > LIMITS.ALLOW_FROM_MAX_ENTRIES) throw new Error('allowFrom too large');
-    out.allowFrom = config.allowFrom.map(v => {
-      if (typeof v !== 'string' || v.length === 0 || v.length > LIMITS.ALLOW_FROM_ENTRY_MAX) {
-        throw new Error('allowFrom entry invalid');
-      }
-      return v;
-    });
-  }
-  if (config.systemPromptOverride !== undefined) {
-    if (typeof config.systemPromptOverride !== 'string') throw new Error('systemPromptOverride must be string');
-    if (config.systemPromptOverride.length > LIMITS.PROMPT_OVERRIDE_MAX) {
-      throw new Error('systemPromptOverride too long');
+  if (channel === 'telegram') {
+    if (config.groupPolicy !== undefined) {
+      out.groupPolicy = validateGroupPolicyValue(config.groupPolicy);
     }
-    out.systemPromptOverride = config.systemPromptOverride;
-  }
-  if (config.allowlisted !== undefined) {
-    if (typeof config.allowlisted !== 'boolean') throw new Error('allowlisted must be boolean');
-    out.allowlisted = config.allowlisted;
+    if (config.allowFrom !== undefined) {
+      out.allowFrom = validateAllowFromArray(config.allowFrom, 'allowFrom');
+    }
+    if (config.ingest !== undefined) {
+      if (typeof config.ingest !== 'boolean') throw new Error('ingest must be boolean');
+      out.ingest = config.ingest;
+    }
+    if (config.enabled !== undefined) {
+      if (typeof config.enabled !== 'boolean') throw new Error('enabled must be boolean');
+      out.enabled = config.enabled;
+    }
+  } else if (channel === 'whatsapp') {
+    for (const k of Object.keys(config)) {
+      if (k !== 'requireMention') {
+        throw new Error(`per-group "${k}" is not supported on whatsapp; use channel-level groupPolicy/groupAllowFrom instead`);
+      }
+    }
+  } else {
+    throw new Error(`per-group config is not yet supported for channel "${channel}"`);
   }
   return out;
 }
@@ -102,10 +126,7 @@ function validateChannelGroupDefaults(defaults) {
   if (!defaults || typeof defaults !== 'object') throw new Error('defaults object required');
   const out = {};
   if (defaults.groupPolicy !== undefined) {
-    if (!['allowlist', 'open'].includes(defaults.groupPolicy)) {
-      throw new Error('groupPolicy must be allowlist or open');
-    }
-    out.groupPolicy = defaults.groupPolicy;
+    out.groupPolicy = validateGroupPolicyValue(defaults.groupPolicy);
   }
   if (defaults.groupAllowFrom !== undefined) {
     if (!Array.isArray(defaults.groupAllowFrom)) throw new Error('groupAllowFrom must be array');
@@ -133,7 +154,7 @@ function buildGroupKeyPath(channel, accountId, groupId, leaf) {
   const base = acct === 'default'
     ? `channels.${channel}.groups`
     : `channels.${channel}.accounts.${acct}.groups`;
-  const path = leaf ? `${base}["${gid}"].${leaf}` : `${base}["${gid}"]`;
+  const path = leaf ? `${base}[${gid}].${leaf}` : `${base}[${gid}]`;
   return sanitizeConfigPath(path);
 }
 

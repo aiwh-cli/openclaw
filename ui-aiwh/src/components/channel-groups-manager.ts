@@ -4,25 +4,27 @@ import { customElement, property, state } from 'lit/decorators.js';
 const api = (window as any).api as (url: string, opts?: any) => Promise<any>;
 const showToast = (window as any).showToast as (msg: string, type?: string) => void;
 
+type GroupPolicy = 'open' | 'allowlist' | 'disabled';
+
 type DiscoveredGroup = {
   id: string;
   name: string;
   kind: string;
   memberCount: number | null;
   configured: boolean;
-  allowlisted: boolean;
+  discovered?: boolean;
 };
 
 type GroupConfig = {
-  name?: string;
   requireMention?: boolean;
   allowFrom?: string[];
-  systemPromptOverride?: string;
-  allowlisted?: boolean;
+  groupPolicy?: GroupPolicy;
+  ingest?: boolean;
+  enabled?: boolean;
 };
 
 type GroupsConfigResponse = {
-  groupPolicy: 'open' | 'allowlist';
+  groupPolicy: GroupPolicy;
   groupAllowFrom: string[];
   groups: Record<string, GroupConfig>;
 };
@@ -39,6 +41,10 @@ export class ChannelGroupsManager extends LitElement {
   @state() private cfg: GroupsConfigResponse = { groupPolicy: 'open', groupAllowFrom: [], groups: {} };
   @state() private expandedGroupId: string | null = null;
   @state() private allowFromDraft = '';
+
+  private supportsPerGroupAccess(): boolean {
+    return this.channel === 'telegram';
+  }
 
   static styles = css`
     :host { display: block; font-family: 'Inter', -apple-system, sans-serif; color: var(--text-primary, #F5EDD6); }
@@ -217,41 +223,51 @@ export class ChannelGroupsManager extends LitElement {
       return html`<div class="loading">Loading groups…</div>`;
     }
 
+    const perGroup = this.supportsPerGroupAccess();
     const rows = this.discovered.map((g) => {
       const cfg = this.cfg.groups[g.id] || {};
-      const allowlisted = g.allowlisted || cfg.allowlisted === true;
+      const effectivePolicy: GroupPolicy = perGroup
+        ? (cfg.groupPolicy ?? this.cfg.groupPolicy)
+        : this.cfg.groupPolicy;
+      const allowed = effectivePolicy !== 'disabled'
+        && (effectivePolicy === 'open' || this.cfg.groupAllowFrom.length > 0 || (cfg.allowFrom?.length ?? 0) > 0);
       const expanded = this.expandedGroupId === g.id;
       return html`
-        <div class="group-row ${g.configured ? 'configured' : ''} ${allowlisted ? 'allowlisted' : ''}"
+        <div class="group-row ${g.configured ? 'configured' : ''} ${allowed ? 'allowlisted' : ''}"
              @click=${() => { this.expandedGroupId = expanded ? null : g.id; }}>
           <span class="group-name">${g.name || g.id}</span>
           <span class="group-id">${g.id}</span>
-          ${allowlisted ? html`<span class="badge on">Allowed</span>` : html`<span class="badge">Unconfigured</span>`}
+          <span class="badge ${allowed ? 'on' : ''}">${effectivePolicy}</span>
         </div>
-        ${expanded ? this.renderDetail(g.id, cfg) : ''}
+        ${expanded ? this.renderDetail(g.id, cfg, perGroup) : ''}
       `;
     });
+
+    const policyHint = this.channel === 'whatsapp'
+      ? 'WhatsApp access is channel-level only. The sender allowlist below filters who the bot responds to across every group it is a member of.'
+      : 'Default policy applies to every group unless a specific group overrides it below.';
 
     return html`
       ${this.error ? html`<div class="err">${this.error}</div>` : ''}
 
       <div class="card">
-        <h3>Channel Defaults</h3>
-        <div class="card-sub">Applies to every group on <strong>${this.channel}</strong>${this.accountId !== 'default' ? html` / ${this.accountId}` : ''} unless a specific group overrides it.</div>
+        <h3>Channel Access</h3>
+        <div class="card-sub">${policyHint}</div>
         <div class="row">
-          <label>Policy
+          <label>Group policy
             <select .value=${this.cfg.groupPolicy}
                     @change=${(e: Event) => {
-                      const v = (e.target as HTMLSelectElement).value as 'open' | 'allowlist';
+                      const v = (e.target as HTMLSelectElement).value as GroupPolicy;
                       this.cfg = { ...this.cfg, groupPolicy: v };
                     }}>
-              <option value="open">Open — anyone in any group</option>
-              <option value="allowlist">Allowlist — only approved groups</option>
+              <option value="open">Open — respond to anyone</option>
+              <option value="allowlist">Allowlist — only approved senders</option>
+              <option value="disabled">Disabled — ignore all groups</option>
             </select>
           </label>
         </div>
         <div class="row">
-          <label style="width:100%">Default allow-from (applies to all groups)</label>
+          <label style="width:100%">Approved senders (phone numbers, usernames, or user IDs)</label>
         </div>
         <div class="chip-list">
           ${this.cfg.groupAllowFrom.map((v) => html`
@@ -259,18 +275,23 @@ export class ChannelGroupsManager extends LitElement {
           `)}
         </div>
         <div class="row">
-          <input type="text" placeholder="user id / phone / email"
+          <input type="text" placeholder="e.g. 61412345678"
                  .value=${this.allowFromDraft}
                  @input=${(e: Event) => { this.allowFromDraft = (e.target as HTMLInputElement).value; }}
                  @keydown=${(e: KeyboardEvent) => { if (e.key === 'Enter') this.addAllowFrom(null); }} />
           <button @click=${() => this.addAllowFrom(null)}>Add</button>
-          <button class="primary" ?disabled=${this.saving} @click=${() => this.saveDefaults()}>Save Defaults</button>
+          <button class="primary" ?disabled=${this.saving} @click=${() => this.saveDefaults()}>Save Channel Access</button>
         </div>
       </div>
 
       <div class="card">
         <h3>Discovered Groups</h3>
-        <div class="card-sub">${this.discovered.length} group(s). Click a row to configure per-group access.</div>
+        <div class="card-sub">
+          ${this.discovered.length} group(s).
+          ${perGroup
+            ? 'Click a row to override policy for that specific group.'
+            : 'Click a row to tweak per-group knobs (require @mention).'}
+        </div>
         ${this.discovered.length === 0
           ? html`<div class="empty">No groups found. Add Branson to a group and refresh.</div>`
           : html`<div class="group-list">${rows}</div>`}
@@ -281,23 +302,46 @@ export class ChannelGroupsManager extends LitElement {
     `;
   }
 
-  private renderDetail(groupId: string, cfg: GroupConfig) {
+  private renderDetail(groupId: string, cfg: GroupConfig, perGroupAccess: boolean) {
     return html`
       <div class="detail" @click=${(e: Event) => e.stopPropagation()}>
         <h4>Per-Group Settings</h4>
-        <div class="toggle-row">
-          <label>
-            <input type="checkbox" .checked=${cfg.allowlisted === true}
-                   @change=${(e: Event) => {
-                     const v = (e.target as HTMLInputElement).checked;
-                     this.cfg = {
-                       ...this.cfg,
-                       groups: { ...this.cfg.groups, [groupId]: { ...cfg, allowlisted: v } },
-                     };
-                   }} />
-            Allowlisted (Branson responds in this group)
-          </label>
-        </div>
+        ${perGroupAccess ? html`
+          <div class="row">
+            <label>Override policy
+              <select .value=${cfg.groupPolicy ?? ''}
+                      @change=${(e: Event) => {
+                        const raw = (e.target as HTMLSelectElement).value;
+                        const patch: GroupConfig = { ...cfg };
+                        if (raw === '') delete patch.groupPolicy;
+                        else patch.groupPolicy = raw as GroupPolicy;
+                        this.cfg = { ...this.cfg, groups: { ...this.cfg.groups, [groupId]: patch } };
+                      }}>
+                <option value="">— inherit channel default —</option>
+                <option value="open">Open</option>
+                <option value="allowlist">Allowlist</option>
+                <option value="disabled">Disabled</option>
+              </select>
+            </label>
+          </div>
+          <div class="row"><label style="width:100%">Override allow-from (applies to this group only)</label></div>
+          <div class="chip-list">
+            ${(cfg.allowFrom || []).map((v) => html`
+              <span class="chip">${v}<button @click=${() => this.removeAllowFrom(groupId, v)}>×</button></span>
+            `)}
+          </div>
+          <div class="row">
+            <input type="text" placeholder="user id / username"
+                   .value=${this.allowFromDraft}
+                   @input=${(e: Event) => { this.allowFromDraft = (e.target as HTMLInputElement).value; }}
+                   @keydown=${(e: KeyboardEvent) => { if (e.key === 'Enter') this.addAllowFrom(groupId); }} />
+            <button @click=${() => this.addAllowFrom(groupId)}>Add</button>
+          </div>
+        ` : html`
+          <div class="warning">
+            This channel does not support per-group access control. Use <strong>Channel Access</strong> above to manage who the bot responds to across all groups.
+          </div>
+        `}
         <div class="toggle-row">
           <label>
             <input type="checkbox" .checked=${cfg.requireMention === true}
@@ -311,21 +355,8 @@ export class ChannelGroupsManager extends LitElement {
             Require @mention
           </label>
         </div>
-        <div class="row"><label style="width:100%">Per-group allow-from (overrides defaults)</label></div>
-        <div class="chip-list">
-          ${(cfg.allowFrom || []).map((v) => html`
-            <span class="chip">${v}<button @click=${() => this.removeAllowFrom(groupId, v)}>×</button></span>
-          `)}
-        </div>
-        <div class="row">
-          <input type="text" placeholder="user id / phone / email"
-                 .value=${this.allowFromDraft}
-                 @input=${(e: Event) => { this.allowFromDraft = (e.target as HTMLInputElement).value; }}
-                 @keydown=${(e: KeyboardEvent) => { if (e.key === 'Enter') this.addAllowFrom(groupId); }} />
-          <button @click=${() => this.addAllowFrom(groupId)}>Add</button>
-        </div>
         <div class="actions">
-          <button class="danger" ?disabled=${this.saving} @click=${() => this.removeGroup(groupId)}>Remove</button>
+          <button class="danger" ?disabled=${this.saving} @click=${() => this.removeGroup(groupId)}>Remove overrides</button>
           <button class="primary" ?disabled=${this.saving}
                   @click=${() => this.saveGroup(groupId, this.cfg.groups[groupId] || {})}>Save Group</button>
         </div>

@@ -119,7 +119,10 @@ function unsetOne(path) {
 }
 
 // Normalize raw CLI group entries into dashboard shape, merging per-group
-// config state so the UI knows which groups are already allowlisted.
+// config state so the UI knows which groups already have a per-group override.
+// Access control is NOT represented here — it lives in channel-level groupPolicy
+// (all channels) and per-group groupPolicy (telegram only). The UI reads those
+// separately from /config.
 function normalizeGroupList(raw, cfgGroups) {
   if (!Array.isArray(raw)) return [];
   const configured = (cfgGroups && typeof cfgGroups === 'object') ? cfgGroups : {};
@@ -129,11 +132,10 @@ function normalizeGroupList(raw, cfgGroups) {
     const configEntry = configured[id] || configured[rawId] || null;
     return {
       id,
-      name: entry?.name || configEntry?.name || id,
+      name: entry?.name || id,
       kind: entry?.kind || 'group',
       memberCount: typeof entry?.memberCount === 'number' ? entry.memberCount : null,
       configured: !!configEntry,
-      allowlisted: configEntry?.allowlisted === true,
     };
   });
 }
@@ -191,11 +193,10 @@ module.exports = (app, deps) => {
         const configEntry = configured[d.groupId] || null;
         groups.push({
           id: d.groupId,
-          name: d.groupName || configEntry?.name || d.groupId,
+          name: d.groupName || d.groupId,
           kind: 'group',
           memberCount: null,
           configured: !!configEntry,
-          allowlisted: configEntry?.allowlisted === true,
           discovered: true,
           firstSeen: d.firstSeen,
           lastSeen: d.lastSeen,
@@ -267,12 +268,7 @@ module.exports = (app, deps) => {
 
       if (groupId) {
         requireGroupId(groupId);
-        const validated = validateGroupConfig(config || {});
-        // If the caller sets any per-group field without explicit allowlisted=false,
-        // treat it as an allowlist entry (sets allowlisted=true).
-        if (validated.allowlisted === undefined && Object.keys(validated).length > 0) {
-          validated.allowlisted = true;
-        }
+        const validated = validateGroupConfig(channel, config || {});
         if (Object.keys(validated).length === 0) {
           return res.status(400).json({ error: 'config object cannot be empty' });
         }
