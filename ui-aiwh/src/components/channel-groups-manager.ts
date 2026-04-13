@@ -9,6 +9,7 @@ type GroupPolicy = 'open' | 'allowlist' | 'disabled';
 type DiscoveredGroup = {
   id: string;
   name: string;
+  displayName?: string;
   kind: string;
   memberCount: number | null;
   configured: boolean;
@@ -27,6 +28,7 @@ type GroupsConfigResponse = {
   groupPolicy: GroupPolicy;
   groupAllowFrom: string[];
   groups: Record<string, GroupConfig>;
+  displayNames: Record<string, string>;
 };
 
 @customElement('channel-groups-manager')
@@ -38,9 +40,10 @@ export class ChannelGroupsManager extends LitElement {
   @state() private saving = false;
   @state() private error = '';
   @state() private discovered: DiscoveredGroup[] = [];
-  @state() private cfg: GroupsConfigResponse = { groupPolicy: 'open', groupAllowFrom: [], groups: {} };
+  @state() private cfg: GroupsConfigResponse = { groupPolicy: 'open', groupAllowFrom: [], groups: {}, displayNames: {} };
   @state() private expandedGroupId: string | null = null;
   @state() private allowFromDraft = '';
+  @state() private displayNameDraft: Record<string, string> = {};
 
   private supportsPerGroupAccess(): boolean {
     return this.channel === 'telegram';
@@ -111,7 +114,9 @@ export class ChannelGroupsManager extends LitElement {
         groupPolicy: cfgRes?.groupPolicy || 'open',
         groupAllowFrom: Array.isArray(cfgRes?.groupAllowFrom) ? cfgRes.groupAllowFrom : [],
         groups: (cfgRes?.groups && typeof cfgRes.groups === 'object') ? cfgRes.groups : {},
+        displayNames: (cfgRes?.displayNames && typeof cfgRes.displayNames === 'object') ? cfgRes.displayNames : {},
       };
+      this.displayNameDraft = { ...this.cfg.displayNames };
     } catch (e: any) {
       this.error = e?.message || 'Failed to load groups';
     } finally {
@@ -146,15 +151,18 @@ export class ChannelGroupsManager extends LitElement {
   private async saveGroup(groupId: string, patch: GroupConfig) {
     this.saving = true;
     try {
-      const res = await api('/channels/groups/config', {
-        method: 'POST',
-        body: {
-          channel: this.channel,
-          accountId: this.accountId,
-          groupId,
-          config: patch,
-        },
-      });
+      const body: any = {
+        channel: this.channel,
+        accountId: this.accountId,
+        groupId,
+        config: { ...patch },
+      };
+      const draftName = this.displayNameDraft[groupId];
+      const savedName = this.cfg.displayNames[groupId] || '';
+      if (draftName !== undefined && draftName !== savedName) {
+        body.config.displayName = draftName;
+      }
+      const res = await api('/channels/groups/config', { method: 'POST', body });
       if (res?.error) throw new Error(res.error);
       showToast('Group updated', 'success');
       await this.load();
@@ -232,10 +240,11 @@ export class ChannelGroupsManager extends LitElement {
       const allowed = effectivePolicy !== 'disabled'
         && (effectivePolicy === 'open' || this.cfg.groupAllowFrom.length > 0 || (cfg.allowFrom?.length ?? 0) > 0);
       const expanded = this.expandedGroupId === g.id;
+      const label = this.cfg.displayNames[g.id] || g.displayName || g.name || g.id;
       return html`
         <div class="group-row ${g.configured ? 'configured' : ''} ${allowed ? 'allowlisted' : ''}"
              @click=${() => { this.expandedGroupId = expanded ? null : g.id; }}>
-          <span class="group-name">${g.name || g.id}</span>
+          <span class="group-name">${label}</span>
           <span class="group-id">${g.id}</span>
           <span class="badge ${allowed ? 'on' : ''}">${effectivePolicy}</span>
         </div>
@@ -303,9 +312,28 @@ export class ChannelGroupsManager extends LitElement {
   }
 
   private renderDetail(groupId: string, cfg: GroupConfig, perGroupAccess: boolean) {
+    const draftName = this.displayNameDraft[groupId] ?? this.cfg.displayNames[groupId] ?? '';
     return html`
       <div class="detail" @click=${(e: Event) => e.stopPropagation()}>
         <h4>Per-Group Settings</h4>
+        <div class="row">
+          <label style="width:100%">Display name (dashboard only, does not rename the real group)</label>
+        </div>
+        <div class="row">
+          <input type="text" placeholder="e.g. Leadership Channel" style="flex:1"
+                 .value=${draftName}
+                 maxlength="120"
+                 @input=${(e: Event) => {
+                   const v = (e.target as HTMLInputElement).value;
+                   this.displayNameDraft = { ...this.displayNameDraft, [groupId]: v };
+                 }} />
+          ${draftName ? html`
+            <button class="danger" ?disabled=${this.saving}
+                    @click=${() => {
+                      this.displayNameDraft = { ...this.displayNameDraft, [groupId]: '' };
+                    }}>Clear</button>
+          ` : ''}
+        </div>
         ${perGroupAccess ? html`
           <div class="row">
             <label>Override policy

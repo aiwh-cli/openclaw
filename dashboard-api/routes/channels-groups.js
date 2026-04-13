@@ -24,6 +24,12 @@ const {
   requireGroupId,
   VALID_CHANNELS,
 } = require('../helpers/channels-config');
+const {
+  getDisplayNamesForScope,
+  setDisplayName,
+  deleteDisplayName,
+  validateDisplayName,
+} = require('../helpers/group-display-names');
 
 // V.1.5: discovered-groups.json is written by the WhatsApp + Telegram
 // inbound monitors whenever a group message arrives, BEFORE the allowlist
@@ -184,6 +190,10 @@ module.exports = (app, deps) => {
       const configured = scope?.groups || {};
 
       const groups = normalizeGroupList(result.out, configured);
+      const displayNames = getDisplayNamesForScope(channel, accountId);
+      for (const g of groups) {
+        if (displayNames[g.id]) g.displayName = displayNames[g.id];
+      }
 
       // V.1.5: merge in discovered groups (auto-learned from inbound monitors)
       // that the CLI does not know about yet. Dedupe by id.
@@ -194,6 +204,7 @@ module.exports = (app, deps) => {
         groups.push({
           id: d.groupId,
           name: d.groupName || d.groupId,
+          displayName: displayNames[d.groupId] || undefined,
           kind: 'group',
           memberCount: null,
           configured: !!configEntry,
@@ -232,6 +243,7 @@ module.exports = (app, deps) => {
         groupPolicy: scope.groupPolicy || 'open',
         groupAllowFrom: Array.isArray(scope.groupAllowFrom) ? scope.groupAllowFrom : [],
         groups: (scope.groups && typeof scope.groups === 'object') ? scope.groups : {},
+        displayNames: getDisplayNamesForScope(channel, accountId),
       });
     } catch (e) {
       res.status(400).json({ error: e.message });
@@ -257,27 +269,46 @@ module.exports = (app, deps) => {
         return res.status(400).json({ error: 'defaults or groupId required' });
       }
 
-      snap = snapshotOpenclawJson();
+      let touchedOpenclawJson = false;
 
       if (defaults && typeof defaults === 'object') {
         const validated = validateChannelGroupDefaults(defaults);
-        for (const [k, v] of Object.entries(validated)) {
-          setOne(buildDefaultsKeyPath(channel, acct, k), v);
+        if (Object.keys(validated).length > 0) {
+          if (!snap) snap = snapshotOpenclawJson();
+          touchedOpenclawJson = true;
+          for (const [k, v] of Object.entries(validated)) {
+            setOne(buildDefaultsKeyPath(channel, acct, k), v);
+          }
         }
       }
 
       if (groupId) {
         requireGroupId(groupId);
-        const validated = validateGroupConfig(channel, config || {});
-        if (Object.keys(validated).length === 0) {
+        // displayName is a dashboard-only cosmetic label — never sent to
+        // openclaw.json because the WhatsApp zod schema is strict.
+        const rawConfig = config && typeof config === 'object' ? { ...config } : {};
+        const displayNameProvided = Object.prototype.hasOwnProperty.call(rawConfig, 'displayName');
+        const displayNameRaw = rawConfig.displayName;
+        delete rawConfig.displayName;
+
+        const validated = validateGroupConfig(channel, rawConfig);
+        const hasGatewayWrites = Object.keys(validated).length > 0;
+        if (!hasGatewayWrites && !displayNameProvided) {
           return res.status(400).json({ error: 'config object cannot be empty' });
         }
-        for (const [k, v] of Object.entries(validated)) {
-          setOne(buildGroupKeyPath(channel, acct, groupId, k), v);
+        if (hasGatewayWrites) {
+          if (!snap) snap = snapshotOpenclawJson();
+          touchedOpenclawJson = true;
+          for (const [k, v] of Object.entries(validated)) {
+            setOne(buildGroupKeyPath(channel, acct, groupId, k), v);
+          }
+        }
+        if (displayNameProvided) {
+          setDisplayName(channel, acct, groupId, displayNameRaw == null ? '' : displayNameRaw);
         }
       }
 
-      scheduleGatewayRestart();
+      if (touchedOpenclawJson) scheduleGatewayRestart();
       dashLog(
         'channels',
         `group config write ${channel}${acct !== 'default' ? '/' + acct : ''} ${groupId || '(defaults)'}`
@@ -312,6 +343,7 @@ module.exports = (app, deps) => {
 
       snap = snapshotOpenclawJson();
       unsetOne(buildGroupKeyPath(channel, acct, groupId, null));
+      deleteDisplayName(channel, acct, groupId);
       scheduleGatewayRestart();
       dashLog(
         'channels',
