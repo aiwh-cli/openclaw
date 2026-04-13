@@ -22,6 +22,7 @@ import {
   extractMentionedJids,
   extractText,
 } from "./extract.js";
+import { recordDiscoveredGroup } from "./auto-learn.js";
 import { attachEmitterListener, closeInboundMonitorSocket } from "./lifecycle.js";
 import { downloadInboundMedia } from "./media.js";
 import { DisconnectReason, isJidGroup, saveMediaBuffer } from "./runtime-api.js";
@@ -326,6 +327,9 @@ export async function monitorWebInbox(options: {
       const meta = await getGroupMeta(remoteJid);
       groupSubject = meta.subject;
       groupParticipants = meta.participants;
+      // V.1.5: record BEFORE allowlist gate so Branson-added-to-new-group is
+      // discoverable in the dashboard even when the message is dropped.
+      recordDiscoveredGroup("whatsapp", options.accountId, remoteJid, groupSubject);
     }
     const messageTimestampMs = msg.messageTimestamp
       ? Number(msg.messageTimestamp) * 1000

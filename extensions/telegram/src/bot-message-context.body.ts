@@ -29,6 +29,7 @@ import {
 import type { MsgContext } from "openclaw/plugin-sdk/reply-runtime";
 import { logVerbose } from "openclaw/plugin-sdk/runtime-env";
 import { normalizeOptionalLowercaseString } from "openclaw/plugin-sdk/text-runtime";
+import { recordDiscoveredGroup } from "./auto-learn.js";
 import type { NormalizedAllowFrom } from "./bot-access.js";
 import { isSenderAllowed } from "./bot-access.js";
 import type {
@@ -120,6 +121,12 @@ export async function resolveTelegramInboundBody(params: {
     logger,
   } = params;
   const botUsername = normalizeOptionalLowercaseString(primaryCtx.me?.username);
+  // V.1.5: record group BEFORE any policy gate so Branson-added-to-new-group
+  // is discoverable in the dashboard even when the message is later dropped.
+  if (isGroup) {
+    const title = (msg.chat as { title?: string } | undefined)?.title;
+    recordDiscoveredGroup("telegram", accountId, String(chatId), title);
+  }
   const mentionRegexes = buildMentionRegexes(cfg, routeAgentId);
   const messageTextParts = getTelegramTextParts(msg);
   const allowForCommands = isGroup ? effectiveGroupAllow : effectiveDmAllow;

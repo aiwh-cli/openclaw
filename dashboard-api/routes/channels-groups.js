@@ -10,6 +10,8 @@
 // V.1 will add GET /api/channels/groups/list (gateway RPC proxy) in this same file.
 
 const { execFileSync } = require('child_process');
+const fs = require('fs');
+const path = require('path');
 const {
   validateGroupConfig,
   validateChannelGroupDefaults,
@@ -22,6 +24,30 @@ const {
   requireGroupId,
   VALID_CHANNELS,
 } = require('../helpers/channels-config');
+
+// V.1.5: discovered-groups.json is written by the WhatsApp + Telegram
+// inbound monitors whenever a group message arrives, BEFORE the allowlist
+// gate drops it. Lets the dashboard surface unconfigured groups without
+// depending on `openclaw directory groups list` (which for WA/TG only reads
+// pre-configured entries from openclaw.json).
+const DISCOVERED_GROUPS_FILE = path.join(
+  process.env.OPENCLAW_STATE_DIR || '/opt/AIWH/.openclaw',
+  'discovered-groups.json',
+);
+
+function readDiscoveredGroups(channel, accountId) {
+  try {
+    const data = JSON.parse(fs.readFileSync(DISCOVERED_GROUPS_FILE, 'utf8'));
+    const out = [];
+    for (const key of Object.keys(data)) {
+      const entry = data[key];
+      if (!entry || entry.channel !== channel) continue;
+      if ((entry.accountId || 'default') !== accountId) continue;
+      out.push(entry);
+    }
+    return out;
+  } catch { return []; }
+}
 
 const OPENCLAW_BIN = '/opt/homebrew/bin/openclaw';
 const OC_ENV = {
@@ -156,7 +182,27 @@ module.exports = (app, deps) => {
       const configured = scope?.groups || {};
 
       const groups = normalizeGroupList(result.out, configured);
-      res.json({ groups, source: 'directory-cli' });
+
+      // V.1.5: merge in discovered groups (auto-learned from inbound monitors)
+      // that the CLI does not know about yet. Dedupe by id.
+      const seen = new Set(groups.map((g) => g.id));
+      for (const d of readDiscoveredGroups(channel, accountId)) {
+        if (seen.has(d.groupId)) continue;
+        const configEntry = configured[d.groupId] || null;
+        groups.push({
+          id: d.groupId,
+          name: d.groupName || configEntry?.name || d.groupId,
+          kind: 'group',
+          memberCount: null,
+          configured: !!configEntry,
+          allowlisted: configEntry?.allowlisted === true,
+          discovered: true,
+          firstSeen: d.firstSeen,
+          lastSeen: d.lastSeen,
+        });
+      }
+
+      res.json({ groups, source: 'directory-cli+discovered' });
     } catch (e) {
       const status = /invalid|required/.test(e.message) ? 400 : 500;
       res.status(status).json({ error: e.message });
