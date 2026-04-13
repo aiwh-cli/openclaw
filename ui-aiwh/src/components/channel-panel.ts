@@ -247,13 +247,28 @@ export class ChannelPanel extends LitElement {
     }
   }
 
+  private _groupCapableConfigured(): string[] {
+    const accounts = (this.snapshot as any)?.channelAccounts || {};
+    const candidates = ['whatsapp', 'discord', 'telegram', 'slack'];
+    return candidates.filter((c) => Array.isArray(accounts[c]) && accounts[c].length > 0);
+  }
+
   render() {
+    const groupable = this._groupCapableConfigured();
     return html`
       <link rel="stylesheet" href="/openclaw-theme-map.css">
       <link rel="stylesheet" href="/openclaw-styles/components.css">
       <link rel="stylesheet" href="/openclaw-styles/layout.css">
       <link rel="stylesheet" href="/openclaw-styles/config.css">
-      <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap">
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          ${groupable.map((c) => html`
+            <button class="btn btn-ghost" style="padding:6px 12px;font-size:12px"
+              @click=${() => (window as any).openChannelGroupsManager?.(c)}>
+              Manage ${c.charAt(0).toUpperCase() + c.slice(1)} Groups
+            </button>
+          `)}
+        </div>
         <button class="btn primary" @click=${() => this._showAddChannel()} style="padding:8px 16px;font-size:13px">+ Add Channel</button>
       </div>
       ${renderChannels(this._buildProps())}

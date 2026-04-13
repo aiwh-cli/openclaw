@@ -340,3 +340,13 @@ async function saveChannelSettings(channelId: string) {
 (window as any).openChannelGroupsManager = openChannelGroupsManager;
 (window as any).addChip = addChip;
 (window as any).getChipValues = getChipValues;
+
+// Document-level handler so Settings buttons inside <channel-health> (used in
+// Overview, outside any <channel-panel>) also open the modal. Without this
+// the event bubbles to document with no listener and the click is a no-op.
+if (!(window as any).__aiwhChannelSettingsDocListener) {
+  (window as any).__aiwhChannelSettingsDocListener = true;
+  document.addEventListener('channel-settings', ((e: CustomEvent) => {
+    if (e?.detail?.channel) openChannelSettings(e.detail.channel);
+  }) as EventListener);
+}
