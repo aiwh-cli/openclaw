@@ -1,0 +1,24 @@
+{
+  "name": "aiwh-remotion-compositor",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Remotion-based video compositor for AIWH cinematic pipeline",
+  "scripts": {
+    "render": "node render.js",
+    "studio": "npx remotion studio"
+  },
+  "dependencies": {
+    "remotion": "^4.0.0",
+    "@remotion/cli": "^4.0.0",
+    "@remotion/renderer": "^4.0.0",
+    "@remotion/media-parser": "^4.0.0",
+    "@remotion/transitions": "^4.0.0",
+    "@remotion/captions": "^4.0.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "typescript": "^5.4.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.0"
+  }
+}
