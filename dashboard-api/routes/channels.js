@@ -149,6 +149,17 @@ module.exports = (app, deps) => {
       // Step 2: Enable the channel
       oc(['config', 'set', `channels.${channel}.enabled`, 'true', '--json'], 10000);
 
+      // Step 2b (Theme V.4): Default to allowlist for channels that carry
+      // group traffic, unless the caller explicitly set one. Safe default:
+      // Branson responds in NO groups until the admin allowlists them.
+      if (['whatsapp', 'discord', 'telegram', 'slack'].includes(channel)) {
+        const cfg = deps.adapter.readConfig();
+        const existingPolicy = cfg?.channels?.[channel]?.groupPolicy;
+        if (!existingPolicy) {
+          oc(['config', 'set', `channels.${channel}.groupPolicy`, '"allowlist"', '--json'], 10000);
+        }
+      }
+
       // Step 3: Set the token/credential if provided
       if (token) {
         const tokenPath = acct === 'default'
