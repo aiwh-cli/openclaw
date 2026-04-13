@@ -92,8 +92,76 @@ function unsetOne(path) {
   }
 }
 
+// Normalize raw CLI group entries into dashboard shape, merging per-group
+// config state so the UI knows which groups are already allowlisted.
+function normalizeGroupList(raw, cfgGroups) {
+  if (!Array.isArray(raw)) return [];
+  const configured = (cfgGroups && typeof cfgGroups === 'object') ? cfgGroups : {};
+  return raw.map((entry) => {
+    const rawId = typeof entry?.id === 'string' ? entry.id : '';
+    const id = rawId.startsWith('channel:') ? rawId.slice(8) : rawId;
+    const configEntry = configured[id] || configured[rawId] || null;
+    return {
+      id,
+      name: entry?.name || configEntry?.name || id,
+      kind: entry?.kind || 'group',
+      memberCount: typeof entry?.memberCount === 'number' ? entry.memberCount : null,
+      configured: !!configEntry,
+      allowlisted: configEntry?.allowlisted === true,
+    };
+  });
+}
+
 module.exports = (app, deps) => {
   const { dashLog } = deps;
+
+  // ─── GET group list (discovery) ───────────────────────────
+  // Shells out to `openclaw directory groups list --channel X --account Y --json`
+  // which already abstracts live adapters (Slack/Discord) + config fallback
+  // (WhatsApp/Telegram). Merges the response with per-group config so the
+  // dashboard can render "configured / allowlisted" badges on each row.
+  app.get('/api/channels/groups/list', (req, res) => {
+    try {
+      const channel = req.query.channel;
+      requireChannel(channel);
+      const accountId = requireAccountId(req.query.accountId);
+      const rawLimit = parseInt(req.query.limit, 10);
+      const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(rawLimit, 1), 500) : 100;
+      const query = typeof req.query.query === 'string' ? req.query.query.slice(0, 128) : '';
+
+      const args = [
+        'directory', 'groups', 'list',
+        '--channel', channel,
+        '--json',
+        '--limit', String(limit),
+      ];
+      if (accountId !== 'default') args.push('--account', accountId);
+      if (query) args.push('--query', query);
+
+      const result = ocSafe(args, 20000);
+      if (!result.ok) {
+        const msg = String(result.err?.message || 'directory lookup failed');
+        // Missing credentials / offline adapter → empty list, not 500
+        if (/not configured|missing|no account|auth|unauthori[sz]ed/i.test(msg)) {
+          return res.json({ groups: [], warning: msg, source: 'directory-cli' });
+        }
+        throw result.err;
+      }
+
+      const cfg = deps.adapter.readConfig();
+      const root = cfg?.channels?.[channel];
+      const scope = accountId === 'default'
+        ? root
+        : (root?.accounts?.[accountId] || {});
+      const configured = scope?.groups || {};
+
+      const groups = normalizeGroupList(result.out, configured);
+      res.json({ groups, source: 'directory-cli' });
+    } catch (e) {
+      const status = /invalid|required/.test(e.message) ? 400 : 500;
+      res.status(status).json({ error: e.message });
+    }
+  });
 
   // ─── GET group config ─────────────────────────────────────
   // Merges channel-level defaults + per-group map from openclaw.json.
