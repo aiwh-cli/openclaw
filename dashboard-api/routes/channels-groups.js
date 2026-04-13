@@ -41,6 +41,54 @@ const DISCOVERED_GROUPS_FILE = path.join(
   'discovered-groups.json',
 );
 
+// Persistent security audit trail. Matches the shape used by
+// routes/security.js + routes/exec-approvals.js. Every channel-group
+// write goes here so an owner can review who changed policies.
+const CLIENT_ROOT = process.env.CLIENT_ROOT || '/opt/AIWH/client';
+const SECURITY_AUDIT_LOG = path.join(CLIENT_ROOT, 'logs', 'security-audit.jsonl');
+
+function writeChannelAudit(req, action, targetPath, outcome, detail) {
+  try {
+    const entry = JSON.stringify({
+      timestamp: new Date().toISOString(),
+      agent_id: 'dashboard',
+      tool: 'dashboard',
+      actor: req.user?.userId || req.user?.email || req.ip || 'anon',
+      action,
+      target_path: targetPath,
+      outcome,
+      detail,
+    });
+    fs.appendFileSync(SECURITY_AUDIT_LOG, entry + '\n');
+  } catch { /* non-fatal — dashLog still fires below */ }
+}
+
+function removeDiscoveredGroup(channel, accountId, groupId) {
+  let data;
+  try {
+    data = JSON.parse(fs.readFileSync(DISCOVERED_GROUPS_FILE, 'utf8'));
+  } catch {
+    return false; // nothing to remove
+  }
+  if (!data || typeof data !== 'object') return false;
+  const target = accountId || 'default';
+  let removed = false;
+  for (const key of Object.keys(data)) {
+    const entry = data[key];
+    if (!entry || entry.channel !== channel) continue;
+    if ((entry.accountId || 'default') !== target) continue;
+    if (entry.groupId !== groupId) continue;
+    delete data[key];
+    removed = true;
+  }
+  if (removed) {
+    const tmp = `${DISCOVERED_GROUPS_FILE}.tmp-${process.pid}`;
+    fs.writeFileSync(tmp, JSON.stringify(data, null, 2));
+    fs.renameSync(tmp, DISCOVERED_GROUPS_FILE);
+  }
+  return removed;
+}
+
 function readDiscoveredGroups(channel, accountId) {
   try {
     const data = JSON.parse(fs.readFileSync(DISCOVERED_GROUPS_FILE, 'utf8'));
@@ -313,6 +361,13 @@ module.exports = (app, deps) => {
         'channels',
         `group config write ${channel}${acct !== 'default' ? '/' + acct : ''} ${groupId || '(defaults)'}`
       );
+      writeChannelAudit(
+        req,
+        'channel_group_config_set',
+        `channels.${channel}${acct !== 'default' ? '.accounts.' + acct : ''}${groupId ? '.groups[' + groupId + ']' : ''}`,
+        'policy_changed',
+        `channel=${channel} account=${acct} group=${groupId || '(defaults)'} fields=[${Object.keys(req.body?.config || req.body?.defaults || {}).join(',')}]`
+      );
       res.json({ ok: true });
     } catch (e) {
       if (snap) {
@@ -349,7 +404,59 @@ module.exports = (app, deps) => {
         'channels',
         `group deleted ${channel}${acct !== 'default' ? '/' + acct : ''} ${groupId}`
       );
+      writeChannelAudit(
+        req,
+        'channel_group_config_delete',
+        `channels.${channel}${acct !== 'default' ? '.accounts.' + acct : ''}.groups[${groupId}]`,
+        'policy_changed',
+        `channel=${channel} account=${acct} group=${groupId}`
+      );
       res.json({ ok: true });
+    } catch (e) {
+      if (snap) {
+        try { restoreOpenclawJson(snap); } catch { /* ignore */ }
+      }
+      const status = /invalid|required|too long|disallowed/.test(e.message) ? 400 : 500;
+      res.status(status).json({ error: e.message });
+    }
+  });
+
+  // ─── DELETE discovered group row ──────────────────────────
+  // Removes a row the inbound monitor auto-learned into
+  // discovered-groups.json (e.g. Branson got kicked from a WA group and
+  // the row is now stale). Also clears any per-group config + display
+  // name in one shot — one button, one write, one audit entry.
+  app.delete('/api/channels/groups/discovered', (req, res) => {
+    if (!checkWriteRate(req)) {
+      return res.status(429).json({ error: 'rate limit exceeded (30 writes/min)' });
+    }
+    let snap = null;
+    try {
+      const { channel, accountId, groupId } = req.body || {};
+      requireChannel(channel);
+      const acct = requireAccountId(accountId);
+      requireGroupId(groupId);
+
+      // Snapshot openclaw.json before touching it — unset is idempotent
+      // but we still want rollback safety if the config write half fails.
+      snap = snapshotOpenclawJson();
+      unsetOne(buildGroupKeyPath(channel, acct, groupId, null));
+      deleteDisplayName(channel, acct, groupId);
+      const removedFromDiscovered = removeDiscoveredGroup(channel, acct, groupId);
+
+      scheduleGatewayRestart();
+      dashLog(
+        'channels',
+        `discovered group removed ${channel}${acct !== 'default' ? '/' + acct : ''} ${groupId} (discovered=${removedFromDiscovered})`
+      );
+      writeChannelAudit(
+        req,
+        'channel_group_discovered_remove',
+        `channels.${channel}${acct !== 'default' ? '.accounts.' + acct : ''}.groups[${groupId}]`,
+        'policy_changed',
+        `channel=${channel} account=${acct} group=${groupId} discovered_row_removed=${removedFromDiscovered}`
+      );
+      res.json({ ok: true, removedFromDiscovered });
     } catch (e) {
       if (snap) {
         try { restoreOpenclawJson(snap); } catch { /* ignore */ }

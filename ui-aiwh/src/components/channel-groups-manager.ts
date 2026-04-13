@@ -72,6 +72,8 @@ export class ChannelGroupsManager extends LitElement {
     .group-row.allowlisted { border-left: 3px solid var(--success, #4CAF7A); }
     .group-name { flex: 1; font-size: 13px; font-weight: 500; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .group-id { font-size: 11px; color: var(--text-muted); font-family: ui-monospace, monospace; }
+    .row-delete { padding: 2px 8px; font-size: 14px; line-height: 1; color: var(--text-muted); border-color: transparent; background: transparent; }
+    .row-delete:hover { color: var(--error, #E05770); border-color: var(--error, #E05770); }
     .badge { font-size: 10px; padding: 2px 6px; border-radius: 10px; border: 1px solid var(--border-dim); color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.4px; }
     .badge.on { border-color: var(--success, #4CAF7A); color: var(--success, #4CAF7A); }
     .detail { background: rgba(0,0,0,0.3); border: 1px solid var(--border-dim); border-radius: 4px; padding: 14px; margin-top: 6px; }
@@ -173,6 +175,25 @@ export class ChannelGroupsManager extends LitElement {
     }
   }
 
+  private async removeDiscoveredRow(groupId: string, label: string) {
+    if (!confirm(`Remove "${label}" from the discovered list? This clears per-group config, display name, and drops it from the discovered cache. It will reappear if Branson is still a member of the group.`)) return;
+    this.saving = true;
+    try {
+      const res = await api('/channels/groups/discovered', {
+        method: 'DELETE',
+        body: { channel: this.channel, accountId: this.accountId, groupId },
+      });
+      if (res?.error) throw new Error(res.error);
+      showToast('Group removed from list', 'success');
+      if (this.expandedGroupId === groupId) this.expandedGroupId = null;
+      await this.load();
+    } catch (e: any) {
+      showToast(`Remove failed: ${e.message}`, 'error');
+    } finally {
+      this.saving = false;
+    }
+  }
+
   private async removeGroup(groupId: string) {
     if (!confirm(`Remove per-group config for "${groupId}"?`)) return;
     this.saving = true;
@@ -247,6 +268,9 @@ export class ChannelGroupsManager extends LitElement {
           <span class="group-name">${label}</span>
           <span class="group-id">${g.id}</span>
           <span class="badge ${allowed ? 'on' : ''}">${effectivePolicy}</span>
+          <button class="row-delete" title="Remove from list"
+                  ?disabled=${this.saving}
+                  @click=${(e: Event) => { e.stopPropagation(); this.removeDiscoveredRow(g.id, label); }}>🗑</button>
         </div>
         ${expanded ? this.renderDetail(g.id, cfg, perGroup) : ''}
       `;
